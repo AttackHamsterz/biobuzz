@@ -46,8 +46,8 @@ public class Constants {
             .zeroPowerBehavior(SwerveConstants.ZeroPowerBehavior.X_LOCK)
             .useBrakeModeInTeleOp(true);
 
-    public static CoaxialPod leftBack(HardwareMap hardwareMap) {
-        return new CoaxialPod(
+    public static GearedCoaxialPod leftBack(HardwareMap hardwareMap) {
+        return new GearedCoaxialPod(
                 hardwareMap,
                 "leftBackMotor",
                 "leftBackServo",
@@ -62,8 +62,8 @@ public class Constants {
                 false);
     }
 
-    public static CoaxialPod rightBack(HardwareMap hardwareMap) {
-        return new CoaxialPod(
+    public static GearedCoaxialPod rightBack(HardwareMap hardwareMap) {
+        return new GearedCoaxialPod(
                 hardwareMap,
                 "rightBackMotor",
                 "rightBackServo",
@@ -78,8 +78,8 @@ public class Constants {
                 false);
     }
 
-    public static CoaxialPod centerFront(HardwareMap hardwareMap) {
-        return new CoaxialPod(
+    public static GearedCoaxialPod centerFront(HardwareMap hardwareMap) {
+        return new GearedCoaxialPod(
                 hardwareMap,
                 "centerFrontMotor",
                 "centerFrontServo",
