@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +41,7 @@ public class StandardSetupOpMode extends OpMode {
 
     // Robot parts
     protected final ArrayList<Map.Entry<RobotPart, Integer> > partsList = new ArrayList<>();
+    public Motion motion;
     public BallLifter ballLifter;
     public PodTest podTest;
 
@@ -47,15 +50,26 @@ public class StandardSetupOpMode extends OpMode {
     @Override
     public void init() {
         // Parts
-        ballLifter = new BallLifter(this);
+        motion = new Motion(this);
+        //ballLifter = new BallLifter(this);
         podTest = new PodTest(this);
+        podTest.init();
 
         // Add parts to parts list
+        partsList.add(Map.entry(motion, 50));
         //partsList.add(Map.entry(ballLifter, 20));
-        partsList.add(Map.entry(podTest, 10));
+        partsList.add(Map.entry(podTest, 200));
 
         // Setup the thread pool
         threadPool = Executors.newScheduledThreadPool(2);
+
+        // 1. Get all hubs (Control Hub + Expansion Hub)
+        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+
+        // 2. Set to AUTO mode for multi-threading
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
     }
 
     @Override
