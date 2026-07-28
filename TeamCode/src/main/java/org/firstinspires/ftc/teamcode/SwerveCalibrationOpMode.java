@@ -1,13 +1,20 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-public class PodTest extends RobotPart{
+import java.util.List;
+
+@TeleOp(name="TeleOp: Swerve Calibration", group="Robot")
+public class SwerveCalibrationOpMode extends OpMode {
 
     /**
      * A pod has everything we need for swerve.  This module uses the analog
@@ -25,11 +32,11 @@ public class PodTest extends RobotPart{
         public double startAngleFraction = 0;
         public double angle = 0;
 
-        public Pod(StandardSetupOpMode ssom, String prefix){
+        public Pod(HardwareMap hardwareMap, String prefix){
             // Hardware mapping
-            motor = ssom.hardwareMap.get(DcMotorEx.class, prefix + "Motor");
-            servo = ssom.hardwareMap.get(CRServo.class, prefix + "Servo");
-            encoder = ssom.hardwareMap.get(AnalogInput.class, prefix + "Encoder");
+            motor = hardwareMap.get(DcMotorEx.class, prefix + "Motor");
+            servo = hardwareMap.get(CRServo.class, prefix + "Servo");
+            encoder = hardwareMap.get(AnalogInput.class, prefix + "Encoder");
             servo.setDirection(DcMotorSimple.Direction.REVERSE);
         }
 
@@ -62,8 +69,8 @@ public class PodTest extends RobotPart{
         public void getTelemetry(Telemetry telemetry, String prefix){
             telemetry.addData(prefix + " zeroVoltage", zeroVoltage);
             telemetry.addData(prefix + " startAngle", startAngleFraction * 360.0);
-            telemetry.addData(prefix + " count", encoderCount);
             telemetry.addData(prefix + " angle", angle);
+            //telemetry.addData(prefix + " count", encoderCount);
         }
 
         public void zero(){
@@ -71,41 +78,82 @@ public class PodTest extends RobotPart{
         }
     };
 
-    private Pod testPod;
+    private List<LynxModule> allHubs;
+    private Pod lPod;
+    private Pod rPod;
+    private Pod bPod;
     private boolean pressed = false;
-
-    public PodTest(StandardSetupOpMode ssom){
-        this.ssom = ssom;
-        testPod = new Pod(ssom, "test");
-    }
 
     @Override
     public void loop() {
-        if(ssom.gamepad1.b){
+        // Clear cache at the start of each loop cycle
+        for (LynxModule hub : allHubs) {
+            hub.clearBulkCache();
+        }
+
+        if(gamepad1.b){
             if(!pressed){
-                testPod.zero();
+                lPod.zero();
+                rPod.zero();
+                bPod.zero();
                 pressed = true;
             }
-        }else if(ssom.gamepad1.a){
+        }else if(gamepad1.a){
             if(!pressed){
-                testPod.init();
+                lPod.init();
+                rPod.init();
+                bPod.init();
                 pressed = true;
             }
         }else{
             pressed = false;
         }
-        testPod.motor.setPower(ssom.gamepad1.left_stick_y);
+        lPod.motor.setPower(-gamepad1.left_stick_y);
+        rPod.motor.setPower(-gamepad1.left_stick_y);
+        bPod.motor.setPower(-gamepad1.left_stick_y);
 
-        testPod.update();
+        lPod.servo.setPower(-gamepad1.left_stick_x);
+        rPod.servo.setPower(-gamepad1.left_stick_x);
+        bPod.servo.setPower(-gamepad1.left_stick_x);
+
+        lPod.update();
+        rPod.update();
+        bPod.update();
     }
 
-    @Override
     public void getTelemetry(Telemetry telemetry) {
-        testPod.getTelemetry(telemetry, "center");
+        if(gamepad1.x) {
+            telemetry.addLine("Left stick left turns wheels counterclockwise from above");
+            telemetry.addLine("Left stick forward spins wheels forward");
+            telemetry.addLine("Flip directions in software if they do not behave");
+            telemetry.addLine("Align wheels (gears face same direction).  Press b for zeroVoltage");
+            telemetry.addLine("Press a for new initAngle. Set zero voltages in software and recompile");
+        }
+        else {
+            telemetry.addLine("Press x for help");
+            lPod.getTelemetry(telemetry, "left");
+            rPod.getTelemetry(telemetry, "right");
+            bPod.getTelemetry(telemetry, "back");
+        }
         telemetry.update();
     }
 
+    @Override
     public void init(){
-        //testPod.init();
+        // 1. Get all hubs (Control Hub + Expansion Hub)
+        allHubs = hardwareMap.getAll(LynxModule.class);
+
+        // 2. Set to AUTO mode for multi-threading
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
+        // Setup swerve pods
+        lPod = new Pod(hardwareMap, "left");
+        rPod = new Pod(hardwareMap, "right");
+        bPod = new Pod(hardwareMap, "back");
+        lPod.init();
+        rPod.init();
+        bPod.init();
     }
 }

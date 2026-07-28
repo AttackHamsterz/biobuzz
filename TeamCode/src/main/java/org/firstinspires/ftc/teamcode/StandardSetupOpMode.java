@@ -43,9 +43,6 @@ public class StandardSetupOpMode extends OpMode {
     protected final ArrayList<Map.Entry<RobotPart, Integer> > partsList = new ArrayList<>();
     public Motion motion;
     public BallLifter ballLifter;
-    public PodTest podTest;
-
-    public Motion motion;
 
     public GamepadBuffer gamepadBuffer;
 
@@ -56,13 +53,10 @@ public class StandardSetupOpMode extends OpMode {
         // Parts
         motion = new Motion(this);
         //ballLifter = new BallLifter(this);
-        podTest = new PodTest(this);
-        podTest.init();
 
         // Add parts to parts list
         partsList.add(Map.entry(motion, 50));
         //partsList.add(Map.entry(ballLifter, 20));
-        partsList.add(Map.entry(podTest, 200));
 
         // Setup the thread pool
         threadPool = Executors.newScheduledThreadPool(2);
