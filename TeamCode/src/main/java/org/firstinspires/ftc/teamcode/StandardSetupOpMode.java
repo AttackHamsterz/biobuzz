@@ -45,6 +45,10 @@ public class StandardSetupOpMode extends OpMode {
     public BallLifter ballLifter;
     public PodTest podTest;
 
+    public Motion motion;
+
+    public GamepadBuffer gamepadBuffer;
+
     private ScheduledExecutorService threadPool;
 
     @Override
