@@ -42,11 +42,11 @@ public class StandardSetupOpMode extends OpMode {
     // Robot parts
     protected final ArrayList<Map.Entry<RobotPart, Integer> > partsList = new ArrayList<>();
     public Motion motion;
-    public BallLifter ballLifter;
-
-    public GamepadBuffer gamepadBuffer;
+    //public BallLifter ballLifter;
 
     private ScheduledExecutorService threadPool;
+
+    protected List<LynxModule> allHubs;
 
     @Override
     public void init() {
@@ -62,11 +62,11 @@ public class StandardSetupOpMode extends OpMode {
         threadPool = Executors.newScheduledThreadPool(2);
 
         // 1. Get all hubs (Control Hub + Expansion Hub)
-        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+        allHubs = hardwareMap.getAll(LynxModule.class);
 
         // 2. Set to AUTO mode for multi-threading
         for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
     }
 
@@ -78,9 +78,12 @@ public class StandardSetupOpMode extends OpMode {
         }
     }
 
-
     @Override
     public void loop() {
+        // Clear cache on each loop, speeds up ic2/analog/digital device queries
+        for (LynxModule hub : allHubs) {
+            hub.clearBulkCache();
+        }
     }
 
     @Override
@@ -120,4 +123,4 @@ public class StandardSetupOpMode extends OpMode {
         // Should we ignore the gamepad or not?
         this.ignoreGamepad = ignoreGamepad;
     }
-};
+}

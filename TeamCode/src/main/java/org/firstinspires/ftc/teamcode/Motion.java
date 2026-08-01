@@ -41,7 +41,6 @@ public class Motion extends RobotPart {
     }
 
     public void stop() {
-        //stop all motion->
         follower.startTeleopDrive(true);
         follower.setTeleOpDrive(0,0,0,true);
         follower.update();
@@ -57,6 +56,5 @@ public class Motion extends RobotPart {
                 telemetry.addData("Heading",Math.toDegrees(pose.getHeading()));
             }
         }
-
     }
 }

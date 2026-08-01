@@ -7,6 +7,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 @Disabled
 public class BioBuzzOpMode extends StandardSetupOpMode {
     @Override public void loop() {
+        // Ensure ssom loop is called
+        super.loop();
+
         // Update telemetry
         if(RobotPart.DEBUG != 0) {
             super.partsList.forEach(part -> part.getKey().getTelemetry(telemetry));

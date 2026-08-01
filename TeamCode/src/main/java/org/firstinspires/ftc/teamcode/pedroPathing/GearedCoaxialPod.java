@@ -9,7 +9,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.ftc.drivetrains.CoaxialPod;
 import com.pedropathing.control.PIDFCoefficients;
-import com.qualcomm.robotcore.util.Range;
 
 public class GearedCoaxialPod extends CoaxialPod {
     private static final double ENCODER_TICS_PER_REV = 4000.0;
@@ -17,21 +16,21 @@ public class GearedCoaxialPod extends CoaxialPod {
     private static final double ELC_SCALE_FACTOR = 1.0 / (ENCODER_TICS_PER_REV * ENCODER_GEAR_RATIO);
     private final DcMotorEx motor;
     private final AnalogInput encoder;
+    private final double analogMinVoltage;
     private final double analogMaxVoltage;
     private final double zeroVoltage;
     private double angleOffsetRad;
 
     // Replicate the constructor you use in Constants.java
-    public GearedCoaxialPod(HardwareMap hardwareMap, String motorName, String servoName,
-                            String turnEncoderName, PIDFCoefficients turnPIDFCoefficients,
+    public GearedCoaxialPod(HardwareMap hardwareMap, String prefix, PIDFCoefficients turnPIDFCoefficients,
                             DcMotorSimple.Direction driveDirection, CRServo.Direction servoDirection,
-                            double angleOffsetRad, Pose podOffset, double analogMinVoltage, double analogMaxVoltage,
-                            boolean encoderReversed) {
-        super(hardwareMap, motorName, servoName, turnEncoderName, turnPIDFCoefficients, driveDirection, servoDirection, angleOffsetRad, podOffset, analogMinVoltage, analogMaxVoltage, encoderReversed);
-        motor = hardwareMap.get(DcMotorEx.class, motorName);
-        encoder = hardwareMap.get(AnalogInput.class, turnEncoderName);
+                            Pose podOffset, double zeroVoltage, double analogMinVoltage, double analogMaxVoltage) {
+        super(hardwareMap, prefix + "Motor", prefix + "Servo", prefix + "Encoder", turnPIDFCoefficients, driveDirection, servoDirection, 0, podOffset, analogMinVoltage, analogMaxVoltage, false);
+        motor = hardwareMap.get(DcMotorEx.class, prefix + "Motor");
+        encoder = hardwareMap.get(AnalogInput.class, prefix + "Encoder");
+        this.analogMinVoltage = analogMinVoltage;
         this.analogMaxVoltage = analogMaxVoltage;
-        this.zeroVoltage = angleOffsetRad / (2.0 * Math.PI) * analogMaxVoltage;
+        this.zeroVoltage = zeroVoltage;
         this.angleOffsetRad = 0;
     }
 
@@ -43,17 +42,15 @@ public class GearedCoaxialPod extends CoaxialPod {
         double currentVoltage = encoder.getVoltage();
 
         // Determine how far away from our zero angle orientation voltage
-        double voltageError = currentVoltage - zeroVoltage;
-
-        // Determine how far away from our zero angle orientation voltage we are
-        voltageError = voltageError % analogMaxVoltage;
-        if (voltageError > analogMaxVoltage / 2.0)
-            voltageError -= analogMaxVoltage;
-        else if (voltageError < -analogMaxVoltage/ 2.0)
-            voltageError += analogMaxVoltage;
+        double errorVoltage = currentVoltage - zeroVoltage;
+        errorVoltage = errorVoltage % 3.3;
+        if (errorVoltage > 1.65)
+            errorVoltage -= 3.3;
+        else if (errorVoltage < -1.65)
+            errorVoltage += 3.3;
 
         // Convert voltage error to angleOffsetRadians, ends up [-pi, pi]
-        angleOffsetRad = voltageError / analogMaxVoltage * 2 * Math.PI;
+        angleOffsetRad = errorVoltage / (analogMaxVoltage - analogMinVoltage) * 2 * Math.PI;
 
         // Reset the encoder now that we know the angle offset from zero
         motor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
@@ -85,14 +82,5 @@ public class GearedCoaxialPod extends CoaxialPod {
 
         // Keep the resulting angle normalized between 0 and 2π
         return ((((double)encoderCount * ELC_SCALE_FACTOR) + 1.0) % 1.0) * (2.0 * Math.PI);
-    }
-
-    /**
-     * Mathod to provide values for calibration
-     * @return The wrapped offset radian for the current analog encoder position
-     */
-    public double currentOffsetRad(){
-        double voltage = Range.clip(encoder.getVoltage(), 0, analogMaxVoltage);
-        return MathFunctions.normalizeAngle(voltage / analogMaxVoltage * 2 * Math.PI);
     }
 }

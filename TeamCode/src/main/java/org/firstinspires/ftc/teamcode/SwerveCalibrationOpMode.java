@@ -27,17 +27,23 @@ public class SwerveCalibrationOpMode extends OpMode {
         public final DcMotorEx motor;
         public final CRServo servo;
         public final AnalogInput encoder;
-        public double zeroVoltage = 0;
+        public double zeroVoltage;
+        private double minVoltage;
+        private double maxVoltage;
         public int encoderCount;
         public double startAngleFraction = 0;
         public double angle = 0;
 
-        public Pod(HardwareMap hardwareMap, String prefix){
+        public Pod(HardwareMap hardwareMap, String prefix, double zeroVoltage, double minVoltage, double maxVoltage){
             // Hardware mapping
             motor = hardwareMap.get(DcMotorEx.class, prefix + "Motor");
             servo = hardwareMap.get(CRServo.class, prefix + "Servo");
             encoder = hardwareMap.get(AnalogInput.class, prefix + "Encoder");
+            motor.setDirection(DcMotorSimple.Direction.REVERSE);
             servo.setDirection(DcMotorSimple.Direction.REVERSE);
+            this.zeroVoltage = zeroVoltage;
+            this.minVoltage = minVoltage;
+            this.maxVoltage = maxVoltage;
         }
 
         public void init(){
@@ -45,15 +51,15 @@ public class SwerveCalibrationOpMode extends OpMode {
             double currentVoltage = encoder.getVoltage();
 
             // Determine how far away from our zero angle orientation voltage
-            double error = currentVoltage - zeroVoltage;
-            error = error % 3.3;
-            if (error > 1.65)
-                error -= 3.3;
-            else if (error < -1.65)
-                error += 3.3;
+            double errorVoltage = currentVoltage - zeroVoltage;
+            errorVoltage = errorVoltage % 3.3;
+            if (errorVoltage > 1.65)
+                errorVoltage -= 3.3;
+            else if (errorVoltage < -1.65)
+                errorVoltage += 3.3;
 
             // Convert error into startAngle
-            startAngleFraction = error / 3.3;
+            startAngleFraction = errorVoltage / (maxVoltage - minVoltage);
 
             // Reset the encoder now that we know the start angle
             motor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
@@ -64,24 +70,31 @@ public class SwerveCalibrationOpMode extends OpMode {
             // Encoder position after zeroing gives us our angle
             encoderCount = motor.getCurrentPosition();
             angle = ((((double)encoderCount * ELC_SCALE_FACTOR + startAngleFraction) + 1.0) % 1.0) * 360.0;
+
+            // Watch for min and max voltages
+            double voltage = encoder.getVoltage();
+            if(voltage < minVoltage)
+                minVoltage = voltage;
+            if(voltage > maxVoltage)
+                maxVoltage = voltage;
         }
 
         public void getTelemetry(Telemetry telemetry, String prefix){
-            telemetry.addData(prefix + " zeroVoltage", zeroVoltage);
+            telemetry.addData(prefix + " zero", zeroVoltage).addData("min", minVoltage).addData("max", maxVoltage);
             telemetry.addData(prefix + " startAngle", startAngleFraction * 360.0);
             telemetry.addData(prefix + " angle", angle);
-            //telemetry.addData(prefix + " count", encoderCount);
         }
 
         public void zero(){
             zeroVoltage = encoder.getVoltage();
         }
-    };
+    }
 
     private List<LynxModule> allHubs;
-    private Pod lPod;
-    private Pod rPod;
-    private Pod bPod;
+    private Pod flPod;
+    private Pod frPod;
+    private Pod blPod;
+    private Pod brPod;
     private boolean pressed = false;
 
     @Override
@@ -93,32 +106,52 @@ public class SwerveCalibrationOpMode extends OpMode {
 
         if(gamepad1.b){
             if(!pressed){
-                lPod.zero();
-                rPod.zero();
-                bPod.zero();
+                flPod.zero();
+                frPod.zero();
+                blPod.zero();
+                brPod.zero();
                 pressed = true;
             }
         }else if(gamepad1.a){
             if(!pressed){
-                lPod.init();
-                rPod.init();
-                bPod.init();
+                flPod.init();
+                frPod.init();
+                blPod.init();
+                brPod.init();
                 pressed = true;
             }
         }else{
             pressed = false;
         }
-        lPod.motor.setPower(-gamepad1.left_stick_y);
-        rPod.motor.setPower(-gamepad1.left_stick_y);
-        bPod.motor.setPower(-gamepad1.left_stick_y);
+        if(gamepad1.dpad_up){
+            flPod.motor.setPower(-gamepad1.left_stick_y);
+            flPod.servo.setPower(-gamepad1.left_stick_x);
+        }
+        else if(gamepad1.dpad_right){
+            frPod.motor.setPower(-gamepad1.left_stick_y);
+            frPod.servo.setPower(-gamepad1.left_stick_x);
+        }
+        else if(gamepad1.dpad_left) {
+            blPod.motor.setPower(-gamepad1.left_stick_y);
+            blPod.servo.setPower(-gamepad1.left_stick_x);
+        }
+        else if(gamepad1.dpad_down) {
+            brPod.motor.setPower(-gamepad1.left_stick_y);
+            brPod.servo.setPower(-gamepad1.left_stick_x);
+        }
+        else{
+            flPod.servo.setPower(-gamepad1.left_stick_x);
+            frPod.servo.setPower(-gamepad1.left_stick_x);
+            blPod.servo.setPower(-gamepad1.left_stick_x);
+            brPod.servo.setPower(-gamepad1.left_stick_x);
+        }
 
-        lPod.servo.setPower(-gamepad1.left_stick_x);
-        rPod.servo.setPower(-gamepad1.left_stick_x);
-        bPod.servo.setPower(-gamepad1.left_stick_x);
+        flPod.update();
+        frPod.update();
+        blPod.update();
+        brPod.update();
 
-        lPod.update();
-        rPod.update();
-        bPod.update();
+        getTelemetry(telemetry);
     }
 
     public void getTelemetry(Telemetry telemetry) {
@@ -126,14 +159,15 @@ public class SwerveCalibrationOpMode extends OpMode {
             telemetry.addLine("Left stick left turns wheels counterclockwise from above");
             telemetry.addLine("Left stick forward spins wheels forward");
             telemetry.addLine("Flip directions in software if they do not behave");
-            telemetry.addLine("Align wheels (gears face same direction).  Press b for zeroVoltage");
-            telemetry.addLine("Press a for new initAngle. Set zero voltages in software and recompile");
+            telemetry.addLine("Align wheels (gears face same direction).  Press circle for zeroVoltage");
+            telemetry.addLine("Press x for new initAngle. Set zero voltages in software and recompile");
         }
         else {
-            telemetry.addLine("Press x for help");
-            lPod.getTelemetry(telemetry, "left");
-            rPod.getTelemetry(telemetry, "right");
-            bPod.getTelemetry(telemetry, "back");
+            telemetry.addLine("Press square for help");
+            flPod.getTelemetry(telemetry, "frontLeft");
+            frPod.getTelemetry(telemetry, "frontRight");
+            blPod.getTelemetry(telemetry, "backLeft");
+            brPod.getTelemetry(telemetry, "backRight");
         }
         telemetry.update();
     }
@@ -149,11 +183,13 @@ public class SwerveCalibrationOpMode extends OpMode {
         }
 
         // Setup swerve pods
-        lPod = new Pod(hardwareMap, "left");
-        rPod = new Pod(hardwareMap, "right");
-        bPod = new Pod(hardwareMap, "back");
-        lPod.init();
-        rPod.init();
-        bPod.init();
+        flPod = new Pod(hardwareMap, "frontLeft", 2.263, 0.026, 3.23);
+        frPod = new Pod(hardwareMap, "frontRight", 2.512, 0.017, 3.225);
+        blPod = new Pod(hardwareMap, "backLeft", 2.892, 0.021, 3.229);
+        brPod = new Pod(hardwareMap, "backRight", 0.086, 0.017, 3.222);
+        flPod.init();
+        frPod.init();
+        blPod.init();
+        brPod.init();
     }
 }

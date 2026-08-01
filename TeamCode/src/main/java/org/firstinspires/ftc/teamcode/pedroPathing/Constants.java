@@ -6,7 +6,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.drivetrains.SwerveConstants;
-import com.pedropathing.ftc.drivetrains.CoaxialPod;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathConstraints;
@@ -46,52 +45,56 @@ public class Constants {
             .zeroPowerBehavior(SwerveConstants.ZeroPowerBehavior.X_LOCK)
             .useBrakeModeInTeleOp(true);
 
-    public static GearedCoaxialPod leftBack(HardwareMap hardwareMap) {
+    public static GearedCoaxialPod frontLeft(HardwareMap hardwareMap) {
         return new GearedCoaxialPod(
                 hardwareMap,
-                "leftBackMotor",
-                "leftBackServo",
-                "leftBackEncoder",
+                "frontLeft",
                 new PIDFCoefficients( 0.3, 0, 0.005, 0.01),
-                DcMotorSimple.Direction.FORWARD,
-                DcMotorSimple.Direction.FORWARD,
-                Math.toRadians(60),
-                new Pose(-2, -2),
-                0,
-                3.3,
-                false);
+                DcMotorSimple.Direction.REVERSE,
+                DcMotorSimple.Direction.REVERSE,
+                new Pose(-4.8, 4.8),
+                2.263,
+                0.026,
+                3.23);
     }
 
-    public static GearedCoaxialPod rightBack(HardwareMap hardwareMap) {
+    public static GearedCoaxialPod frontRight(HardwareMap hardwareMap) {
         return new GearedCoaxialPod(
                 hardwareMap,
-                "rightBackMotor",
-                "rightBackServo",
-                "rightBackEncoder",
+                "frontRight",
                 new PIDFCoefficients( 0.3, 0, 0.005, 0.01),
-                DcMotorSimple.Direction.FORWARD,
-                DcMotorSimple.Direction.FORWARD,
-                Math.toRadians(-60),
-                new Pose(-2, 2),
-                0,
-                3.3,
-                false);
+                DcMotorSimple.Direction.REVERSE,
+                DcMotorSimple.Direction.REVERSE,
+                new Pose(4.8, 4.8),
+                2.512,
+                0.017,
+                3.225);
     }
 
-    public static GearedCoaxialPod centerFront(HardwareMap hardwareMap) {
+    public static GearedCoaxialPod backLeft(HardwareMap hardwareMap) {
         return new GearedCoaxialPod(
                 hardwareMap,
-                "centerFrontMotor",
-                "centerFrontServo",
-                "centerFrontEncoder",
+                "backLeft",
                 new PIDFCoefficients( 0.3, 0, 0.005, 0.01),
-                DcMotorSimple.Direction.FORWARD,
-                DcMotorSimple.Direction.FORWARD,
-                Math.toRadians(180),
-                new Pose(2, 0),
-                0,
-                3.3,
-                false);
+                DcMotorSimple.Direction.REVERSE,
+                DcMotorSimple.Direction.REVERSE,
+                new Pose(-4.8, -4.8),
+                2.892,
+                0.021,
+                3.229);
+    }
+
+    public static GearedCoaxialPod backRight(HardwareMap hardwareMap) {
+        return new GearedCoaxialPod(
+                hardwareMap,
+                "backRight",
+                new PIDFCoefficients( 0.3, 0, 0.005, 0.01),
+                DcMotorSimple.Direction.REVERSE,
+                DcMotorSimple.Direction.REVERSE,
+                new Pose(4.8, -4.8),
+                0.086,
+                0.017,
+                3.222);
     }
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
@@ -100,9 +103,10 @@ public class Constants {
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pathConstraints(pathConstraints)
                 .swerveDrivetrain(swerveConstants,
-                    leftBack(hardwareMap),
-                    rightBack(hardwareMap),
-                    centerFront(hardwareMap))
+                        frontLeft(hardwareMap),
+                        frontRight(hardwareMap),
+                        backLeft(hardwareMap),
+                        backRight(hardwareMap))
                 .pinpointLocalizer(pinpointConstants)
                 .build();
     }

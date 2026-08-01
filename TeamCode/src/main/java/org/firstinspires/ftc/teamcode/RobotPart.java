@@ -5,7 +5,6 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public abstract class RobotPart {
     // Opmode reference
     protected StandardSetupOpMode ssom;
-    protected boolean running;
 
     // DEBUG drives telemetry output
     // Set bit positions to enable disable outputs
@@ -31,19 +30,5 @@ public abstract class RobotPart {
      * @param telemetry place to put the info
      */
     public abstract void getTelemetry(Telemetry telemetry);
-
-    /**
-     * Tell the robot part we are running threads
-     */
-    public void setRunning() {
-        running = true;
-    }
-
-    /**
-     * Signal any robot part threads to stop and cleanup
-     */
-    public void safeStop() {
-        running = false;
-    }
 }
 
