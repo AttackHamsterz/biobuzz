@@ -9,16 +9,24 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 public class Motion extends RobotPart {
     public Follower follower;
     private double externalTurn;
+    private double f, s, t;
+
     public Motion(StandardSetupOpMode ssom){
         this.ssom = ssom;
         follower = Constants.createFollower(ssom.hardwareMap);
-        follower.activateAllPIDFs();
+        //follower.activateAllPIDFs();
         externalTurn = 0;
     }
     public void setTurn(double turn) { externalTurn = turn; }
 
+    @Override
     public void init() {
+    }
+
+    @Override
+    public void start(){
         follower.startTeleopDrive();
+        follower.setTeleOpDrive(0, 0, 0, true);
         follower.update();
     }
 
@@ -31,9 +39,9 @@ public class Motion extends RobotPart {
             else if(ssom.gamepad1.left_trigger > 0.05)
                 scale = 1.0f - ssom.gamepad1.left_trigger * 0.75f;
 
-            double f = -ssom.gamepad1.left_stick_y*scale;
-            double s = -ssom.gamepad1.left_stick_x*scale;
-            double t = -externalTurn-ssom.gamepad1.right_stick_x*scale;
+            f = ssom.gamepad1.left_stick_y*scale;
+            s = -ssom.gamepad1.left_stick_x*scale;
+            t = -ssom.gamepad1.right_stick_x*scale;
 
             follower.setTeleOpDrive(f, s, t, true);
             follower.update();
@@ -49,8 +57,11 @@ public class Motion extends RobotPart {
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 1) !=0) {
-            Pose pose = follower.getPose();
+            Pose pose = follower.poseTracker.getLocalizer().getPose();
             if(pose != null) {
+                telemetry.addData("f", f);
+                telemetry.addData("s", s);
+                telemetry.addData("t", t);
                 telemetry.addData("X", pose.getX());
                 telemetry.addData("Y", pose.getY());
                 telemetry.addData("Heading",Math.toDegrees(pose.getHeading()));

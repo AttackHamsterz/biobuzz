@@ -1428,7 +1428,7 @@ class Circle extends OpMode {
  */
 class AnalogMinMaxTuner extends OpMode {
     //populate the below with your names for the servos and encoders
-    public String[] encoderNames = {"leftFrontEncoder", "rightFrontEncoder", "leftBackEncoder", "rightBackEncoder"};
+    public String[] encoderNames = {"frontLeftEncoder", "frontRightEncoder", "backLeftEncoder", "backRightEncoder"};
     public AnalogInput[] encoders = new AnalogInput[encoderNames.length];
     public double[] minVoltages = new double[encoderNames.length];
     public double[] maxVoltages = new double[encoderNames.length];
@@ -1452,7 +1452,7 @@ class AnalogMinMaxTuner extends OpMode {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
 
-        for (int i = 0; i < encoders.length; i++)  {
+        for (int i = 0; i < encoderNames.length; i++)  {
             encoders[i] = hardwareMap.get(AnalogInput.class, encoderNames[i]);
             minVoltages[i] = 5; //bigger value than should ever be read
         }
@@ -1475,12 +1475,12 @@ class AnalogMinMaxTuner extends OpMode {
             double currentVoltage = encoders[i].getVoltage();
             minVoltages[i] = Math.min(minVoltages[i], currentVoltage);
             maxVoltages[i] = Math.max(maxVoltages[i], currentVoltage);
-            telemetryM.addData(encoderNames[i] + "min value:", minVoltages[i]);
-            telemetryM.addData(encoderNames[i] + "max value:", maxVoltages[i]);
-            telemetryM.addLine("");
+            telemetry.addData(encoderNames[i] + "min value:", minVoltages[i]);
+            telemetry.addData(encoderNames[i] + "max value:", maxVoltages[i]);
+            telemetry.addLine("");
         }
 
-        telemetryM.update();
+        telemetry.update();
     }
 }
 

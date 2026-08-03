@@ -18,6 +18,17 @@ public class Intake extends RobotPart{
         intakeMotor.setDirection(DcMotor.Direction.FORWARD);
 
     }
+
+    @Override
+    public void init() {
+
+    }
+
+    @Override
+    public void start() {
+
+    }
+
     @Override
     public void loop() {
         if(!ssom.ignoreGamepad){

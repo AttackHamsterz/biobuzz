@@ -50,17 +50,6 @@ public class StandardSetupOpMode extends OpMode {
 
     @Override
     public void init() {
-        // Parts
-        motion = new Motion(this);
-        //ballLifter = new BallLifter(this);
-
-        // Add parts to parts list
-        partsList.add(Map.entry(motion, 50));
-        //partsList.add(Map.entry(ballLifter, 20));
-
-        // Setup the thread pool
-        threadPool = Executors.newScheduledThreadPool(2);
-
         // 1. Get all hubs (Control Hub + Expansion Hub)
         allHubs = hardwareMap.getAll(LynxModule.class);
 
@@ -68,11 +57,32 @@ public class StandardSetupOpMode extends OpMode {
         for (LynxModule hub : allHubs) {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
+
+        // Parts
+        motion = new Motion(this);
+        //ballLifter = new BallLifter(this);
+
+        // Add parts to parts list
+        partsList.add(Map.entry(motion, 20));
+        //partsList.add(Map.entry(ballLifter, 20));
+
+        // Init parts
+        for (Map.Entry<RobotPart, Integer> entry : partsList) {
+            entry.getKey().init();
+        }
+
+        // Setup the thread pool
+        threadPool = Executors.newScheduledThreadPool(partsList.size());
     }
 
     @Override
     public void start(){
-        // Launch the robot parts
+        // Start parts
+        for (Map.Entry<RobotPart, Integer> entry : partsList) {
+            entry.getKey().start();
+        }
+
+        // Launch the robot part loops
         for (Map.Entry<RobotPart, Integer> entry : partsList) {
             threadPool.scheduleWithFixedDelay(entry.getKey()::loop, 0, entry.getValue(), TimeUnit.MILLISECONDS);
         }
@@ -107,6 +117,9 @@ public class StandardSetupOpMode extends OpMode {
             // Preserve interrupt status
             Thread.currentThread().interrupt();
         }
+
+        // Stop the robot parts
+        motion.stop();
     }
 
     /**

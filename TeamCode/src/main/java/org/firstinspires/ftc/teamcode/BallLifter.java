@@ -15,6 +15,16 @@ public class BallLifter extends RobotPart{
     }
 
     @Override
+    public void init() {
+
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
     public void loop() {
         if(!ssom.ignoreGamepad) {
             if (ssom.gamepad1.a)

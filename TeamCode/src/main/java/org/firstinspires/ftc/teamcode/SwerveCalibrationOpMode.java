@@ -10,11 +10,19 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.List;
 
 @TeleOp(name="TeleOp: Swerve Calibration", group="Robot")
 public class SwerveCalibrationOpMode extends OpMode {
+
+    private List<LynxModule> allHubs;
+    private Pod flPod;
+    private Pod frPod;
+    private Pod blPod;
+    private Pod brPod;
+    private boolean pressed = false;
 
     /**
      * A pod has everything we need for swerve.  This module uses the analog
@@ -39,7 +47,6 @@ public class SwerveCalibrationOpMode extends OpMode {
             motor = hardwareMap.get(DcMotorEx.class, prefix + "Motor");
             servo = hardwareMap.get(CRServo.class, prefix + "Servo");
             encoder = hardwareMap.get(AnalogInput.class, prefix + "Encoder");
-            motor.setDirection(DcMotorSimple.Direction.REVERSE);
             servo.setDirection(DcMotorSimple.Direction.REVERSE);
             this.zeroVoltage = zeroVoltage;
             this.minVoltage = minVoltage;
@@ -59,7 +66,7 @@ public class SwerveCalibrationOpMode extends OpMode {
                 errorVoltage += 3.3;
 
             // Convert error into startAngle
-            startAngleFraction = errorVoltage / (maxVoltage - minVoltage);
+            startAngleFraction = errorVoltage / (maxVoltage - minVoltage) / 7.0;
 
             // Reset the encoder now that we know the start angle
             motor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
@@ -80,9 +87,12 @@ public class SwerveCalibrationOpMode extends OpMode {
         }
 
         public void getTelemetry(Telemetry telemetry, String prefix){
-            telemetry.addData(prefix + " zero", zeroVoltage).addData("min", minVoltage).addData("max", maxVoltage);
+            telemetry.addData(prefix + " zero", zeroVoltage);
+            telemetry.addData(prefix + " min", minVoltage);
+            telemetry.addData(prefix + " max", maxVoltage);
             telemetry.addData(prefix + " startAngle", startAngleFraction * 360.0);
             telemetry.addData(prefix + " angle", angle);
+            telemetry.addData(prefix + " count", encoderCount);
         }
 
         public void zero(){
@@ -90,12 +100,32 @@ public class SwerveCalibrationOpMode extends OpMode {
         }
     }
 
-    private List<LynxModule> allHubs;
-    private Pod flPod;
-    private Pod frPod;
-    private Pod blPod;
-    private Pod brPod;
-    private boolean pressed = false;
+    @Override
+    public void init(){
+        // 1. Get all hubs (Control Hub + Expansion Hub)
+        allHubs = hardwareMap.getAll(LynxModule.class);
+
+        // 2. Set to AUTO mode for multi-threading
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
+        // Setup swerve pods
+        flPod = new Pod(hardwareMap, "frontLeft", Constants.FRONT_LEFT_ZERO, Constants.FRONT_LEFT_MIN, Constants.FRONT_LEFT_MAX);
+        frPod = new Pod(hardwareMap, "frontRight", Constants.FRONT_RIGHT_ZERO, Constants.FRONT_RIGHT_MIN, Constants.FRONT_RIGHT_MAX);
+        blPod = new Pod(hardwareMap, "backLeft", Constants.BACK_LEFT_ZERO, Constants.BACK_LEFT_MIN, Constants.BACK_LEFT_MAX);
+        brPod = new Pod(hardwareMap, "backRight", Constants.BACK_RIGHT_ZERO, Constants.BACK_RIGHT_MIN, Constants.BACK_RIGHT_MAX);
+    }
+
+    @Override
+    public void start(){
+        // Init the pods right before we start looping
+        // Magnetic encoder should have settled
+        flPod.init();
+        frPod.init();
+        blPod.init();
+        brPod.init();
+    }
 
     @Override
     public void loop() {
@@ -124,19 +154,19 @@ public class SwerveCalibrationOpMode extends OpMode {
             pressed = false;
         }
         if(gamepad1.dpad_up){
-            flPod.motor.setPower(-gamepad1.left_stick_y);
+            flPod.motor.setPower(gamepad1.left_stick_y);
             flPod.servo.setPower(-gamepad1.left_stick_x);
         }
         else if(gamepad1.dpad_right){
-            frPod.motor.setPower(-gamepad1.left_stick_y);
+            frPod.motor.setPower(gamepad1.left_stick_y);
             frPod.servo.setPower(-gamepad1.left_stick_x);
         }
         else if(gamepad1.dpad_left) {
-            blPod.motor.setPower(-gamepad1.left_stick_y);
+            blPod.motor.setPower(gamepad1.left_stick_y);
             blPod.servo.setPower(-gamepad1.left_stick_x);
         }
         else if(gamepad1.dpad_down) {
-            brPod.motor.setPower(-gamepad1.left_stick_y);
+            brPod.motor.setPower(gamepad1.left_stick_y);
             brPod.servo.setPower(-gamepad1.left_stick_x);
         }
         else{
@@ -159,7 +189,7 @@ public class SwerveCalibrationOpMode extends OpMode {
             telemetry.addLine("Left stick left turns wheels counterclockwise from above");
             telemetry.addLine("Left stick forward spins wheels forward");
             telemetry.addLine("Flip directions in software if they do not behave");
-            telemetry.addLine("Align wheels (gears face same direction).  Press circle for zeroVoltage");
+            telemetry.addLine("Align wheels (gears face same direction +x).  Press circle for zeroVoltage");
             telemetry.addLine("Press x for new initAngle. Set zero voltages in software and recompile");
         }
         else {
@@ -170,26 +200,5 @@ public class SwerveCalibrationOpMode extends OpMode {
             brPod.getTelemetry(telemetry, "backRight");
         }
         telemetry.update();
-    }
-
-    @Override
-    public void init(){
-        // 1. Get all hubs (Control Hub + Expansion Hub)
-        allHubs = hardwareMap.getAll(LynxModule.class);
-
-        // 2. Set to AUTO mode for multi-threading
-        for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
-        }
-
-        // Setup swerve pods
-        flPod = new Pod(hardwareMap, "frontLeft", 2.263, 0.026, 3.23);
-        frPod = new Pod(hardwareMap, "frontRight", 2.512, 0.017, 3.225);
-        blPod = new Pod(hardwareMap, "backLeft", 2.892, 0.021, 3.229);
-        brPod = new Pod(hardwareMap, "backRight", 0.086, 0.017, 3.222);
-        flPod.init();
-        frPod.init();
-        blPod.init();
-        brPod.init();
     }
 }

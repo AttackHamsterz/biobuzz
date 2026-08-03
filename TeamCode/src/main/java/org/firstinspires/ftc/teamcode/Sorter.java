@@ -12,6 +12,16 @@ public class Sorter extends RobotPart {
     private final CRServo ejectServo;
 
     @Override
+    public void init() {
+
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
     public void loop() {
 
     }
