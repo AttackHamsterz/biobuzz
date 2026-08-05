@@ -42,8 +42,9 @@ public class Constants {
 
     public static SwerveConstants swerveConstants = new SwerveConstants()
             .maxPower(1.0)
-            .velocity(74.0)
-            .zeroPowerBehavior(SwerveConstants.ZeroPowerBehavior.X_LOCK)
+            .velocity(120.0)
+            .zeroPowerBehavior(SwerveConstants.ZeroPowerBehavior.IGNORE_ANGLE_CHANGES)
+            .staticFrictionCoefficient(0.05)
             .useBrakeModeInTeleOp(true);
 
     public static final double FRONT_LEFT_ZERO = 2.537;
@@ -64,7 +65,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "frontLeft",
-                new PIDFCoefficients( 0.5, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(6.75, -6.75),
@@ -77,7 +78,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "frontRight",
-                new PIDFCoefficients( 0.5, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(6.75, 6.75),
@@ -90,7 +91,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "backLeft",
-                new PIDFCoefficients( 0.5, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(-6.75, -6.75),
@@ -103,7 +104,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "backRight",
-                new PIDFCoefficients( 0.5, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(-6.75, 6.75),

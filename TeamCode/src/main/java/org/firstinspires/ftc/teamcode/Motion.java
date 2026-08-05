@@ -14,7 +14,7 @@ public class Motion extends RobotPart {
     public Motion(StandardSetupOpMode ssom){
         this.ssom = ssom;
         follower = Constants.createFollower(ssom.hardwareMap);
-        //follower.activateAllPIDFs();
+        follower.activateAllPIDFs();
         externalTurn = 0;
     }
     public void setTurn(double turn) { externalTurn = turn; }
