@@ -47,19 +47,19 @@ public class Constants {
             .staticFrictionCoefficient(0.05)
             .useBrakeModeInTeleOp(true);
 
-    public static final double FRONT_LEFT_ZERO = 1.832;
-    public static final double FRONT_RIGHT_ZERO = 2.294;
-    public static final double BACK_LEFT_ZERO = 0.106;
-    public static final double BACK_RIGHT_ZERO = 3.137;
+    public static final double FRONT_RIGHT_ZERO = 1.103;
+    public static final double BACK_RIGHT_ZERO = 1.421;
+    public static final double FRONT_LEFT_ZERO = 2.645;
+    public static final double BACK_LEFT_ZERO = 2.334;
 
-    public static final double FRONT_LEFT_MIN = 0.017;
-    public static final double FRONT_LEFT_MAX = 3.23;
-    public static final double FRONT_RIGHT_MIN = 0.019;
-    public static final double FRONT_RIGHT_MAX = 3.224;
-    public static final double BACK_LEFT_MIN = 0.015;
-    public static final double BACK_LEFT_MAX = 3.227;
-    public static final double BACK_RIGHT_MIN = 0.012;
-    public static final double BACK_RIGHT_MAX = 3.228;
+    public static final double FRONT_RIGHT_MIN = 0.017;
+    public static final double FRONT_RIGHT_MAX = 3.23;
+    public static final double BACK_RIGHT_MIN = 0.019;
+    public static final double BACK_RIGHT_MAX = 3.224;
+    public static final double FRONT_LEFT_MIN = 0.015;
+    public static final double FRONT_LEFT_MAX = 3.227;
+    public static final double BACK_LEFT_MIN = 0.012;
+    public static final double BACK_LEFT_MAX = 3.228;
 
     public static GearedCoaxialPod frontLeft(HardwareMap hardwareMap) {
         return new GearedCoaxialPod(
