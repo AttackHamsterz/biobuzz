@@ -12,23 +12,37 @@ public class AutoOpMode extends StandardSetupOpMode {
     protected Timer pathTimer;
     protected Timer opmodeTimer;
 
-public void buildPaths() {}
-public void autonomousPathUpdate() {}
-public void setPathState (int pState) {
-    int pathState = pState;
-    pathTimer.resetTimer();
-}
-public void incrementPathState() {setPathState(pathState+1); }
+    public void buildPaths() {
+    }
 
-@Override public void init() {
-    super.init();
-    pathTimer = new Timer();
-    buildPaths();
-}
+    public void autonomousPathUpdate() {
+    }
 
-@Override public void start() {
-    setPathState(0);
-    opmodeTimer.resetTimer();
-}
+    public void setPathState(int pState) {
+        int pathState = pState;
+        pathTimer.resetTimer();
+    }
+
+    public void incrementPathState() {
+        setPathState(pathState + 1);
+    }
+
+    @Override
+    public void init() {
+        super.init();
+        pathTimer = new Timer();
+        buildPaths();
+    }
+
+    @Override
+    public void start() {
+        setPathState(0);
+        opmodeTimer.resetTimer();
+    }
+
+    @Override
+    public void loop() {
+        autonomousPathUpdate();
+    }
 
 }
