@@ -44,7 +44,7 @@ public class Constants {
             .maxPower(1.0)
             .velocity(120.0)
             .zeroPowerBehavior(SwerveConstants.ZeroPowerBehavior.IGNORE_ANGLE_CHANGES)
-            .staticFrictionCoefficient(0.05)
+            .staticFrictionCoefficient(0.0005)
             .useBrakeModeInTeleOp(true);
 
     public static final double FRONT_RIGHT_ZERO = 1.103;
@@ -65,7 +65,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "frontLeft",
-                new PIDFCoefficients( 0.6, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0.015),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(6.75, -6.75),
@@ -78,7 +78,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "frontRight",
-                new PIDFCoefficients( 0.6, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0.015),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(6.75, 6.75),
@@ -91,7 +91,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "backLeft",
-                new PIDFCoefficients( 0.6, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0.015),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(-6.75, -6.75),
@@ -104,7 +104,7 @@ public class Constants {
         return new GearedCoaxialPod(
                 hardwareMap,
                 "backRight",
-                new PIDFCoefficients( 0.6, 0, 0.005, 0),
+                new PIDFCoefficients( 0.6, 0, 0.005, 0.015),
                 DcMotorSimple.Direction.FORWARD,
                 DcMotorSimple.Direction.REVERSE,
                 new Pose(-6.75, 6.75),
