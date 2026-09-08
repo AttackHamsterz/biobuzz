@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.ftc.drivetrains.Swerve;
 import com.pedropathing.geometry.Pose;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -33,6 +34,12 @@ public class Motion extends RobotPart {
     @Override
     public void loop() {
         if(!ssom.ignoreGamepad) {
+            if (ssom.gamepad1.start)
+            {
+                Swerve swerve = (Swerve)follower.getDrivetrain();
+                swerve.arcadeDrive(0,0,0);
+                return;
+            }
             float scale = 1.0f;
             if(ssom.gamepad1.left_bumper)
                 scale = 0.5f;

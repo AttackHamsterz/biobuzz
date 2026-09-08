@@ -77,6 +77,7 @@ public class CloseAutoOpMode extends AutoOpMode {
         setPathState(0);
     }
 
+    @Override
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:

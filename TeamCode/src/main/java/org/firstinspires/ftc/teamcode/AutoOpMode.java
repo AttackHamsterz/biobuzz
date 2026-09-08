@@ -37,7 +37,7 @@ public class AutoOpMode extends StandardSetupOpMode {
     @Override
     public void start() {
         setPathState(0);
-        opmodeTimer.resetTimer();
+        //opmodeTimer.resetTimer();
     }
 
     @Override
