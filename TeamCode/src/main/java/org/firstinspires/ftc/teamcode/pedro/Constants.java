@@ -17,19 +17,28 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Constants {
 
-    public static final double FRONT_RIGHT_ZERO = 1.103;
-    public static final double BACK_RIGHT_ZERO = 1.421;
-    public static final double FRONT_LEFT_ZERO = 2.645;
-    public static final double BACK_LEFT_ZERO = 2.334;
+    public static final double FRONT_LEFT_ZERO = 2.442;
+    public static final double FRONT_LEFT_MIN = 0.013;
+    public static final double FRONT_LEFT_MAX = 3.225;
 
-    public static final double FRONT_RIGHT_MIN = 0.017;
-    public static final double FRONT_RIGHT_MAX = 3.23;
-    public static final double BACK_RIGHT_MIN = 0.019;
+    public static final double FRONT_RIGHT_ZERO = 1.081;
+    public static final double FRONT_RIGHT_MIN = 0.014;
+    public static final double FRONT_RIGHT_MAX = 3.229;
+
+    public static final double BACK_LEFT_ZERO = 2.367;
+    public static final double BACK_LEFT_MIN = 0.015;
+    public static final double BACK_LEFT_MAX = 3.222;
+
+    public static final double BACK_RIGHT_ZERO = 1.457;
+    public static final double BACK_RIGHT_MIN = 0.02;
     public static final double BACK_RIGHT_MAX = 3.224;
-    public static final double FRONT_LEFT_MIN = 0.015;
-    public static final double FRONT_LEFT_MAX = 3.227;
-    public static final double BACK_LEFT_MIN = 0.012;
-    public static final double BACK_LEFT_MAX = 3.228;
+
+    public static final double FRICTION_COEF = 0.0; //0.0005
+    public static final double TURN_P = 0.38;
+    public static final double TURN_I = 0.0;
+    public static final double TURN_D = 0.018;
+    public static final double TURN_F = 0.075;
+
 
     public static CoaxialPodConfig frontLeft = new CoaxialPodConfig(
             c -> {
@@ -42,8 +51,8 @@ public class Constants {
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
-                        Controller.pid(0.6, 0, 0.005)
-                                .plus(Controller.proportionalFeedforward(0)));
+                        Controller.pid(TURN_P, TURN_I, TURN_D)
+                                .plus(Controller.proportionalFeedforward(TURN_F)));
             }
     );
 
@@ -58,8 +67,8 @@ public class Constants {
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
-                        Controller.pid(0.6, 0, 0.005)
-                                .plus(Controller.proportionalFeedforward(0)));
+                        Controller.pid(TURN_P, TURN_I, TURN_D)
+                                .plus(Controller.proportionalFeedforward(TURN_F)));
             }
     );
 
@@ -74,8 +83,8 @@ public class Constants {
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
-                        Controller.pid(0.6, 0, 0.005)
-                                .plus(Controller.proportionalFeedforward(0)));
+                        Controller.pid(TURN_P, TURN_I, TURN_D)
+                                .plus(Controller.proportionalFeedforward(TURN_F)));
             }
     );
 
@@ -90,8 +99,8 @@ public class Constants {
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
-                        Controller.pid(0.6, 0, 0.005)
-                                .plus(Controller.proportionalFeedforward(0)));
+                        Controller.pid(TURN_P, TURN_I, TURN_D)
+                                .plus(Controller.proportionalFeedforward(TURN_F)));
             }
     );
 
@@ -110,7 +119,7 @@ public class Constants {
                 c.zeroPowerBehavior.set(SwerveConfig.ZeroPowerBehavior.IGNORE_ANGLE_CHANGES);
                 c.manualBrakeMode.set(true);
                 c.voltageCompensation.set(true);
-                c.staticFrictionCoefficient.set(0.0005);
+                c.staticFrictionCoefficient.set(FRICTION_COEF);
             }
     );
 

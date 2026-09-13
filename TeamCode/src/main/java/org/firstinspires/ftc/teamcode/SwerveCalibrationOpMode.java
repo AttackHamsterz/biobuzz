@@ -111,10 +111,11 @@ public class SwerveCalibrationOpMode extends OpMode {
         }
 
         // Setup swerve pods
-        flPod = new Pod(hardwareMap, "frontLeft", Constants.FRONT_LEFT_ZERO, Constants.FRONT_LEFT_MIN, Constants.FRONT_LEFT_MAX);
-        frPod = new Pod(hardwareMap, "frontRight", Constants.FRONT_RIGHT_ZERO, Constants.FRONT_RIGHT_MIN, Constants.FRONT_RIGHT_MAX);
-        blPod = new Pod(hardwareMap, "backLeft", Constants.BACK_LEFT_ZERO, Constants.BACK_LEFT_MIN, Constants.BACK_LEFT_MAX);
-        brPod = new Pod(hardwareMap, "backRight", Constants.BACK_RIGHT_ZERO, Constants.BACK_RIGHT_MIN, Constants.BACK_RIGHT_MAX);
+        double ds = 0.1;
+        flPod = new Pod(hardwareMap, "frontLeft", Constants.FRONT_LEFT_ZERO, Constants.FRONT_LEFT_MIN+ds, Constants.FRONT_LEFT_MAX-ds);
+        frPod = new Pod(hardwareMap, "frontRight", Constants.FRONT_RIGHT_ZERO, Constants.FRONT_RIGHT_MIN+ds, Constants.FRONT_RIGHT_MAX-ds);
+        blPod = new Pod(hardwareMap, "backLeft", Constants.BACK_LEFT_ZERO, Constants.BACK_LEFT_MIN+ds, Constants.BACK_LEFT_MAX-ds);
+        brPod = new Pod(hardwareMap, "backRight", Constants.BACK_RIGHT_ZERO, Constants.BACK_RIGHT_MIN+ds, Constants.BACK_RIGHT_MAX-ds);
     }
 
     @Override

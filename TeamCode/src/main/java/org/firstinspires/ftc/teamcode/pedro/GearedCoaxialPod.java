@@ -203,7 +203,7 @@ public class GearedCoaxialPod implements SwervePod {
 
         if (Math.abs(drivePower - lastDrivePower) > motorCachingThreshold || (drivePower == 0 && lastDrivePower != 0)) {
             lastDrivePower = drivePower;
-            motor.setPower(drivePower);
+            //motor.setPower(drivePower);
         }
     }
 
