@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.ftc.drivetrains.Swerve;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
+import com.pedropathing.revhub.drivetrains.Swerve;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 public class Motion extends RobotPart {
     public Follower follower;
@@ -14,8 +14,7 @@ public class Motion extends RobotPart {
 
     public Motion(StandardSetupOpMode ssom){
         this.ssom = ssom;
-        follower = Constants.createFollower(ssom.hardwareMap);
-        follower.activateAllPIDFs();
+        follower = Constants.create(ssom.hardwareMap);
         externalTurn = 0;
     }
     public void setTurn(double turn) { externalTurn = turn; }
@@ -26,8 +25,8 @@ public class Motion extends RobotPart {
 
     @Override
     public void start(){
-        follower.startTeleopDrive();
-        follower.setTeleOpDrive(0, 0, 0, true);
+        follower.setPose(new Pose(0,0,0));
+        follower.manual(0, 0, 0);
         follower.update();
     }
 
@@ -36,8 +35,7 @@ public class Motion extends RobotPart {
         if(!ssom.ignoreGamepad) {
             if (ssom.gamepad1.start)
             {
-                Swerve swerve = (Swerve)follower.getDrivetrain();
-                swerve.arcadeDrive(0,0,0);
+                follower.manual(0,0,0);
                 return;
             }
             float scale = 1.0f;
@@ -46,32 +44,32 @@ public class Motion extends RobotPart {
             else if(ssom.gamepad1.left_trigger > 0.05)
                 scale = 1.0f - ssom.gamepad1.left_trigger * 0.75f;
 
-            f = ssom.gamepad1.left_stick_y*scale;
-            s = -ssom.gamepad1.left_stick_x*scale;
-            t = -ssom.gamepad1.right_stick_x*scale;
+            f = -ssom.gamepad1.left_stick_y*scale;
+            s = ssom.gamepad1.left_stick_x*scale;
+            t = ssom.gamepad1.right_stick_x*scale;
 
-            follower.setTeleOpDrive(f, s, t, true);
+            follower.manual(f, s, t);
             follower.update();
         }
     }
 
     public void stop() {
-        follower.startTeleopDrive(true);
-        follower.setTeleOpDrive(0,0,0,true);
+        follower.manual(0,0,0);
         follower.update();
     }
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 1) !=0) {
-            Pose pose = follower.poseTracker.getLocalizer().getPose();
+            Pose pose = follower.localizer.pose();
+
             if(pose != null) {
                 telemetry.addData("f", f);
                 telemetry.addData("s", s);
                 telemetry.addData("t", t);
-                telemetry.addData("X", pose.getX());
-                telemetry.addData("Y", pose.getY());
-                telemetry.addData("Heading",Math.toDegrees(pose.getHeading()));
+                telemetry.addData("X", pose.x());
+                telemetry.addData("Y", pose.y());
+                telemetry.addData("Heading",Math.toDegrees(pose.heading()));
             }
         }
     }

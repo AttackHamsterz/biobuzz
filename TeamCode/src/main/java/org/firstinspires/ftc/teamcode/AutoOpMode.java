@@ -1,48 +1,33 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.pedropathing.ivy.Scheduler;
 
 @Autonomous(name = "Auto", group = "Robot")
 @Disabled
 
-public class AutoOpMode extends StandardSetupOpMode {
-    protected int pathState;
-    protected Timer pathTimer;
-    protected Timer opmodeTimer;
-
-    public void buildPaths() {
-    }
-
-    public void autonomousPathUpdate() {
-    }
-
-    public void setPathState(int pState) {
-        int pathState = pState;
-        pathTimer.resetTimer();
-    }
-
-    public void incrementPathState() {
-        setPathState(pathState + 1);
-    }
+public abstract class AutoOpMode extends StandardSetupOpMode {
 
     @Override
     public void init() {
         super.init();
-        pathTimer = new Timer();
-        buildPaths();
+        Scheduler.reset();
     }
+
+    /**
+     * Op modes must override the schedule building
+     */
+    public abstract void buildSchedule();
 
     @Override
     public void start() {
-        setPathState(0);
-        //opmodeTimer.resetTimer();
     }
 
     @Override
     public void loop() {
-        autonomousPathUpdate();
+        motion.follower.update();
+        Scheduler.execute();
     }
 
 }

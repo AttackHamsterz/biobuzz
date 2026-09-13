@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 import java.util.List;
 
@@ -47,7 +47,7 @@ public class SwerveCalibrationOpMode extends OpMode {
             motor = hardwareMap.get(DcMotorEx.class, prefix + "Motor");
             servo = hardwareMap.get(CRServo.class, prefix + "Servo");
             encoder = hardwareMap.get(AnalogInput.class, prefix + "Encoder");
-            servo.setDirection(DcMotorSimple.Direction.REVERSE);
+            motor.setDirection(DcMotorSimple.Direction.REVERSE);
             this.zeroVoltage = zeroVoltage;
             this.minVoltage = minVoltage;
             this.maxVoltage = maxVoltage;
@@ -154,26 +154,26 @@ public class SwerveCalibrationOpMode extends OpMode {
             pressed = false;
         }
         if(gamepad1.dpad_up){
-            flPod.motor.setPower(gamepad1.left_stick_y);
-            flPod.servo.setPower(-gamepad1.left_stick_x);
+            flPod.motor.setPower(-gamepad1.left_stick_y);
+            flPod.servo.setPower(gamepad1.left_stick_x);
         }
         else if(gamepad1.dpad_right){
-            frPod.motor.setPower(gamepad1.left_stick_y);
-            frPod.servo.setPower(-gamepad1.left_stick_x);
+            frPod.motor.setPower(-gamepad1.left_stick_y);
+            frPod.servo.setPower(gamepad1.left_stick_x);
         }
         else if(gamepad1.dpad_left) {
-            blPod.motor.setPower(gamepad1.left_stick_y);
-            blPod.servo.setPower(-gamepad1.left_stick_x);
+            blPod.motor.setPower(-gamepad1.left_stick_y);
+            blPod.servo.setPower(gamepad1.left_stick_x);
         }
         else if(gamepad1.dpad_down) {
-            brPod.motor.setPower(gamepad1.left_stick_y);
-            brPod.servo.setPower(-gamepad1.left_stick_x);
+            brPod.motor.setPower(-gamepad1.left_stick_y);
+            brPod.servo.setPower(gamepad1.left_stick_x);
         }
         else{
-            flPod.servo.setPower(-gamepad1.left_stick_x);
-            frPod.servo.setPower(-gamepad1.left_stick_x);
-            blPod.servo.setPower(-gamepad1.left_stick_x);
-            brPod.servo.setPower(-gamepad1.left_stick_x);
+            flPod.servo.setPower(gamepad1.left_stick_x);
+            frPod.servo.setPower(gamepad1.left_stick_x);
+            blPod.servo.setPower(gamepad1.left_stick_x);
+            brPod.servo.setPower(gamepad1.left_stick_x);
         }
 
         flPod.update();

@@ -1,19 +1,23 @@
-package org.firstinspires.ftc.teamcode.pedroPathing; // Use your actual package name
+package org.firstinspires.ftc.teamcode.pedro; // Use your actual package name
 
 import android.os.Handler;
 import android.os.Looper;
 
-import com.pedropathing.control.PIDFController;
-import com.pedropathing.ftc.drivetrains.SwervePod;
-import com.pedropathing.math.MathFunctions;
+import com.pedropathing.controllers.Controller;
+import com.pedropathing.math.Vector2D;
+import com.pedropathing.revhub.drivetrains.CoaxialPodConfig;
+import com.pedropathing.revhub.drivetrains.SwervePod;
+import com.pedropathing.utils.Angle;
+import com.pedropathing.utils.Utils;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.control.PIDFCoefficients;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Implements a coaxial swerve pod with a geared servo for increased torque
@@ -26,43 +30,48 @@ public class GearedCoaxialPod implements SwervePod {
     private static final double ENCODER_TICS_PER_REV = 4000.0;
     private static final double ENCODER_GEAR_RATIO = 7.0;
     private static final double ELC_SCALE_FACTOR = 1.0 / (ENCODER_TICS_PER_REV * ENCODER_GEAR_RATIO);
-    private static final double MOTOR_CACHING_THRESHOLD = 0.01;
-    private static final double SERVO_CACHING_THRESHOLD = 0.01;
 
-    private final String prefix;
-
+    private final String name;
     private final DcMotorEx motor;
     private final CRServo servo;
     private final AnalogInput encoder;
 
-    private final PIDFController turnPID;
-    private final Pose offset;
+    private final Controller turnController;
+    private final Vector2D podOffset;
 
     private final double analogMinVoltage;
     private final double analogMaxVoltage;
-    private final double zeroVoltage;
+    private final double analogZeroVoltage;
     private double startAngleFraction;
 
+    private final boolean encoderReversed;
+    private final double servoCachingThreshold;
+    private final double motorCachingThreshold;
     private double lastDrivePower = 0;
     private double lastTurnPower = 0;
+    private final boolean flipDigitalEncoder;
 
     // Replicate the constructor you use in Constants.java
-    public GearedCoaxialPod(HardwareMap hardwareMap, String prefix, PIDFCoefficients turnPIDFCoefficients,
-                            DcMotorSimple.Direction driveDirection, CRServo.Direction servoDirection,
-                            Pose podOffset, double zeroVoltage, double analogMinVoltage, double analogMaxVoltage) {
-        this.prefix = prefix;
-        motor = hardwareMap.get(DcMotorEx.class, prefix + "Motor");
-        servo = hardwareMap.get(CRServo.class, prefix + "Servo");
-        encoder = hardwareMap.get(AnalogInput.class, prefix + "Encoder");
-        turnPID = new PIDFController(turnPIDFCoefficients);
-        this.offset = podOffset;
-        this.analogMinVoltage = analogMinVoltage;
-        this.analogMaxVoltage = analogMaxVoltage;
-        this.zeroVoltage = zeroVoltage;
+    public GearedCoaxialPod(HardwareMap hardwareMap, CoaxialPodConfig config)
+    {
+        name = config.name.get();
+        motor = hardwareMap.get(DcMotorEx.class, name + "Motor");
+        servo = hardwareMap.get(CRServo.class, name + "Servo");
+        encoder = hardwareMap.get(AnalogInput.class, name + "Encoder");
+        turnController = config.turnController.get();
+        podOffset = config.podOffset.get();
+        analogMinVoltage = config.analogMinVoltage.get();
+        analogMaxVoltage = config.analogMaxVoltage.get();
+        analogZeroVoltage = config.angleOffsetRad.get();
+        encoderReversed = config.encoderReversed.get();
+        servoCachingThreshold = config.servoCachingThreshold.get();
+        motorCachingThreshold = config.motorCachingThreshold.get();
 
-        motor.setDirection(driveDirection);
-        servo.setDirection(servoDirection);
+        flipDigitalEncoder = config.driveDirection.get() == DcMotorSimple.Direction.REVERSE;
+        motor.setDirection(config.driveDirection.get());
+        servo.setDirection(config.servoDirection.get());
         setToFloat();
+        servo.setPower(0);
 
         // Final step: init zero angle after hardware is stable (1000ms)
         new Handler(Looper.getMainLooper()).postDelayed(this::init, 1000);
@@ -76,7 +85,7 @@ public class GearedCoaxialPod implements SwervePod {
         double currentVoltage = encoder.getVoltage();
 
         // Determine how far away from our zero angle orientation voltage
-        double errorVoltage = currentVoltage - zeroVoltage;
+        double errorVoltage = currentVoltage - analogZeroVoltage;
         errorVoltage = errorVoltage % 3.3;
         if (errorVoltage > 1.65)
             errorVoltage -= 3.3;
@@ -92,15 +101,38 @@ public class GearedCoaxialPod implements SwervePod {
     }
 
     @Override
-    public Pose getOffset() {
-        return offset;
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public Vector2D getOffset() {
+        return podOffset;
     }
 
     @Override
     public double getAngle() {
         // Encoder position after zeroing gives us our angle
-        int encoderCount = motor.getCurrentPosition();
+        int encoderCount = flipDigitalEncoder ? -motor.getCurrentPosition() : motor.getCurrentPosition();
         return ((((double)encoderCount * ELC_SCALE_FACTOR + startAngleFraction) + 1.0) % 1.0) * TWO_PI;
+    }
+
+    /**
+     * Sets turn servo power in [-1, 1].
+     * @param power turn servo power
+     */
+    public void setServoPower(double power) {
+        lastTurnPower = power;
+        servo.setPower(power);
+    }
+
+    /**
+     * Sets drive motor power in [-1, 1].
+     * @param power drive motor power
+     */
+    public void setMotorPower(double power) {
+        lastDrivePower = power;
+        motor.setPower(power);
     }
 
     @Override
@@ -111,22 +143,22 @@ public class GearedCoaxialPod implements SwervePod {
 
         // wheelTheta is in radians. If encoder is reversed, use wheelTheta directly; otherwise invert.
         //if encoder is reversed, ccw (top down) is positive, if unreversed than cw is positive
-        double t = 2 * Math.PI - wheelTheta;
+        double t = encoderReversed ? wheelTheta : (2 * Math.PI - wheelTheta);
         // servo zero offset: +90 degrees -> +pi/2 radians
         t += Math.PI / 2.0;
-        return MathFunctions.normalizeAngle(t);
+        return Angle.normalize(t);
     }
 
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
         // Convert hardware angle to radians and normalize
         double actualRad = getAngle();
-        actualRad = MathFunctions.normalizeAngle(actualRad);
+        actualRad = Angle.normalize(actualRad);
         double desiredRad = adjustThetaForEncoder(targetAngleRad);
 
         // Shortest-path error in radians (signed)
-        double mag = MathFunctions.getSmallestAngleDifference(actualRad, desiredRad);
-        double dir = MathFunctions.getTurnDirection(actualRad, desiredRad);
+        double mag = Angle.smallestDifference(actualRad, desiredRad);
+        double dir = Angle.turnDirection(actualRad, desiredRad);
         double signedRad = (mag == Math.PI) ? -Math.PI : mag * dir;
 
         // PID uses radians (tune PIDF for radian error)
@@ -135,38 +167,41 @@ public class GearedCoaxialPod implements SwervePod {
         // Minimize rotation: flip + invert drive if > 90°
         if (Math.abs(errorRad) > (Math.PI / 2.0)) {
             // add 180 degrees (pi radians)
-            desiredRad = MathFunctions.normalizeAngle(desiredRad + Math.PI);
+            desiredRad = Angle.normalize(desiredRad + Math.PI);
             drivePower = -drivePower;
 
             // recompute signed error
-            mag = MathFunctions.getSmallestAngleDifference(actualRad, desiredRad);
-            dir = MathFunctions.getTurnDirection(actualRad, desiredRad);
+            mag = Angle.smallestDifference(actualRad, desiredRad);
+            dir = Angle.turnDirection(actualRad, desiredRad);
             signedRad = (mag == Math.PI) ? -Math.PI : mag * dir;
             errorRad = signedRad;
         }
 
         // Setpoint close to current so PID follows shortest path
         double setpointRad = actualRad + errorRad;
-
+        double turnPower;
         if (Math.abs(errorRad) < (2.0 * Math.PI / 180.0)) {
-            turnPID.updateFeedForwardInput(0);
+            turnPower = Utils.clamp(
+                    turnController.calculate(0, errorRad),
+                    -1.0,
+                    1.0);
         } else {
-            turnPID.updateFeedForwardInput(MathFunctions.getTurnDirection(actualRad, desiredRad));
+            turnPower = Utils.clamp(
+                    turnController.calculate(Angle.turnDirection(actualRad, desiredRad), errorRad),
+                    -1.0, 1.0
+            );
         }
 
-        turnPID.updateError(setpointRad - actualRad);
-        double turnPower = MathFunctions.clamp(turnPID.run(), -1.0, 1.0);
-
-        // please don't change the next 5 lines took like 5 hours to figure ts out
+        // Avoid overshoot
         if (ignoreAngleChanges) {
             lastTurnPower = 0;
             servo.setPower(0);
-        } else if (Math.abs(turnPower - lastTurnPower) > SERVO_CACHING_THRESHOLD || (turnPower == 0 && lastTurnPower != 0)) {
+        } else if (Math.abs(turnPower - lastTurnPower) > servoCachingThreshold || (turnPower == 0 && lastTurnPower != 0)) {
             lastTurnPower = turnPower;
             servo.setPower(turnPower);
         }
 
-        if (Math.abs(drivePower - lastDrivePower) > MOTOR_CACHING_THRESHOLD || (drivePower == 0 && lastDrivePower != 0)) {
+        if (Math.abs(drivePower - lastDrivePower) > motorCachingThreshold || (drivePower == 0 && lastDrivePower != 0)) {
             lastDrivePower = drivePower;
             motor.setPower(drivePower);
         }
@@ -183,12 +218,12 @@ public class GearedCoaxialPod implements SwervePod {
     }
 
     @Override
-    public String debugString() {
-        double angle = getAngle();
-        return prefix + " {"
-                + "\ncurrent angle = " + Math.toDegrees(angle)
-                + "\nservo Power = " + servo.getPower()
-                + "\ndrive Power = " + motor.getPower()
-                + "\n}";
+    public Map<String, Object> debug() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("servoName", name);
+        map.put("angleAfterOffsetDeg", Math.toDegrees(getAngle()));
+        map.put("servoPower", servo.getPower());
+        map.put("drivePower", motor.getPower());
+        return map;
     }
 }
