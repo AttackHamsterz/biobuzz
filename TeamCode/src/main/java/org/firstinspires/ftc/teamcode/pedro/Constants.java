@@ -37,7 +37,10 @@ public class Constants {
     public static final double TURN_P = 0.38;
     public static final double TURN_I = 0.0;
     public static final double TURN_D = 0.018;
-    public static final double TURN_F = 0.075;
+    public static final double FL_TURN_F = 0.12;
+    public static final double FR_TURN_F = 0.095;;
+    public static final double BL_TURN_F = 0.085;
+    public static final double BR_TURN_F = 0.12;
 
 
     public static CoaxialPodConfig frontLeft = new CoaxialPodConfig(
@@ -46,13 +49,13 @@ public class Constants {
                 c.analogMinVoltage.set(FRONT_LEFT_MIN);
                 c.analogMaxVoltage.set(FRONT_LEFT_MAX);
                 c.angleOffsetRad.set(FRONT_LEFT_ZERO);
-                c.podOffset.set(Vector2D.cartesian(6.75, 6.75));
+                c.podOffset.set(Vector2D.cartesian(6.75, -6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(TURN_F)));
+                                .plus(Controller.proportionalFeedforward(FL_TURN_F)));
             }
     );
 
@@ -62,13 +65,13 @@ public class Constants {
                 c.analogMinVoltage.set(FRONT_RIGHT_MIN);
                 c.analogMaxVoltage.set(FRONT_RIGHT_MAX);
                 c.angleOffsetRad.set(FRONT_RIGHT_ZERO);
-                c.podOffset.set(Vector2D.cartesian(6.75, -6.75));
+                c.podOffset.set(Vector2D.cartesian(6.75, 6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(TURN_F)));
+                                .plus(Controller.proportionalFeedforward(FR_TURN_F)));
             }
     );
 
@@ -78,13 +81,13 @@ public class Constants {
                 c.analogMinVoltage.set(BACK_LEFT_MIN);
                 c.analogMaxVoltage.set(BACK_LEFT_MAX);
                 c.angleOffsetRad.set(BACK_LEFT_ZERO);
-                c.podOffset.set(Vector2D.cartesian(-6.75, 6.75));
+                c.podOffset.set(Vector2D.cartesian(-6.75, -6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(TURN_F)));
+                                .plus(Controller.proportionalFeedforward(BL_TURN_F)));
             }
     );
 
@@ -94,21 +97,21 @@ public class Constants {
                 c.analogMinVoltage.set(BACK_RIGHT_MIN);
                 c.analogMaxVoltage.set(BACK_RIGHT_MAX);
                 c.angleOffsetRad.set(BACK_RIGHT_ZERO);
-                c.podOffset.set(Vector2D.cartesian(-6.75, -6.75));
+                c.podOffset.set(Vector2D.cartesian(-6.75, 6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(TURN_F)));
+                                .plus(Controller.proportionalFeedforward(BR_TURN_F)));
             }
     );
 
     public static PinpointConfig localizerConfig = new PinpointConfig(
             c -> {
                 c.name.set("pinpoint");
-                c.xPodOffset.set(3.6610706960122417);
-                c.yPodOffset.set(-7.081870131605254);
+                c.xPodOffset.set(3.853);
+                c.yPodOffset.set(2.27);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
                 c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
             }

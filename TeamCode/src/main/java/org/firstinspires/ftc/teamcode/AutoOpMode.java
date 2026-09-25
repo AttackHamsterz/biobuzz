@@ -13,6 +13,7 @@ public abstract class AutoOpMode extends StandardSetupOpMode {
     public void init() {
         super.init();
         Scheduler.reset();
+        buildSchedule();
     }
 
     /**
