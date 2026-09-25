@@ -37,10 +37,10 @@ public class Constants {
     public static final double TURN_P = 0.38;
     public static final double TURN_I = 0.0;
     public static final double TURN_D = 0.018;
-    public static final double FL_TURN_F = 0.12;
+    public static final double FL_TURN_F = 0.1;
     public static final double FR_TURN_F = 0.095;;
     public static final double BL_TURN_F = 0.085;
-    public static final double BR_TURN_F = 0.12;
+    public static final double BR_TURN_F = 0.1;
 
 
     public static CoaxialPodConfig frontLeft = new CoaxialPodConfig(
