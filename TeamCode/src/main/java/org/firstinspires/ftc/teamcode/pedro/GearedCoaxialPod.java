@@ -131,7 +131,7 @@ public class GearedCoaxialPod implements SwervePod {
         targetPower = drivePower;
 
         // Cap drive power for calibration
-        drivePower *= 0.3;
+        //drivePower *= 0.3;
 
         // Convert hardware angle to radians and normalize
         double actualRad = getAngle();
