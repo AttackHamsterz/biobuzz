@@ -129,22 +129,24 @@ public class Constants {
     // TODO - TUNE THIS
     public static ForesightConfig foresightConfig = new ForesightConfig(
         c -> {
-            Controller primaryTranslationalForward = Controller.proportional(0.3);
-            Controller secondaryTranslationalForward = Controller.proportional(0.1);
-            Controller primaryTranslationalLateral = Controller.proportional(0.3);
-            Controller secondaryTranslationalLateral = Controller.proportional(0.1);
+            Controller primaryTranslationalForward = Controller.proportional(0.24777729225346273);
+            Controller secondaryTranslationalForward = Controller.proportional(0.09154708875646973);
+            Controller primaryTranslationalLateral = Controller.proportional(0.24777729225346273);
+            Controller secondaryTranslationalLateral = Controller.proportional(0.09154708875646973);
             c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward));
             c.strafeTranslational.set(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral));
-            c.coast.set(Controller.proportionalFeedforward(0.010978350889324107));
-            c.brake.set(Controller.proportionalFeedforward(0.008731598255925491));
+            c.coast.set(Controller.proportionalFeedforward(0.01244254832154185));
+            c.brake.set(Controller.proportionalFeedforward(0.010576166073310573));
+
             c.headingFeedback.set(Controller.proportional(5.258721785960744));
             c.headingBrakeCoefficients.set(Vector2D.cartesian(0.05642143125655298, 0.0063829525363003695));
             c.linearBrakeCoefficients.set(Matrix.diag(0.10605894992901523, 0.08719146175596092));
             c.quadraticBrakeCoefficients.set(Matrix.diag(0.0014663966976606565, 0.0013837064502458813));
+
             c.maxAchievableForwardVelocity.set(72.2215);
             c.maxAchievableStrafeVelocity.set(72.2215);
-            c.naturalForwardDeceleration.set(85.0114);
-            c.naturalStrafeDeceleration.set(85.0114);
+            c.naturalForwardDeceleration.set(44.575);
+            c.naturalStrafeDeceleration.set(44.575);
         }
     );
 
