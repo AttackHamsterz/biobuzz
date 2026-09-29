@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.pedro.PedroCommands.follow;
 
 @Autonomous(name = "Auto: Close", group = "Robot")
@@ -58,34 +59,31 @@ public class CloseAutoOpMode extends AutoOpMode {
         fourthScorePose = poseFactory.of(fourthScorePoseX, fourthScorePoseY, fourthScorePoseAngle);
         parkPose = poseFactory.of(parkX, parkY, parkAngle);
 
-        // setup and build the paths
         super.init();
-        motion.follower.setPose(poseFactory.of(startPoseX, startPoseY, startPoseAngle));
+        motion.follower.setPose(startPose);
     }
 
+    // Each path starts at the previous fixed pose (not the live pose),
+    // so every run drives the same route
+
     private Path firstScore() {
-        //Pose currentPose = motion.follower.pose();
         return line(startPose, firstScorePose).linear(startPose, firstScorePose);
     }
 
     private Path secondScore() {
-        Pose currentPose = motion.follower.pose();
-        return line(currentPose, secondScorePose).linear(currentPose, secondScorePose);
+        return line(firstScorePose, secondScorePose).linear(firstScorePose, secondScorePose);
     }
 
     private Path thirdScore() {
-        Pose currentPose = motion.follower.pose();
-        return line(currentPose, thirdScorePose).linear(currentPose, thirdScorePose);
+        return line(secondScorePose, thirdScorePose).linear(secondScorePose, thirdScorePose);
     }
 
     private Path fourthScore() {
-        Pose currentPose = motion.follower.pose();
-        return line(currentPose, fourthScorePose).linear(currentPose, fourthScorePose);
+        return line(thirdScorePose, fourthScorePose).linear(thirdScorePose, fourthScorePose);
     }
 
     private Path park() {
-        Pose currentPose = motion.follower.pose();
-        return line(currentPose, parkPose).linear(currentPose, parkPose);
+        return line(fourthScorePose, parkPose).linear(fourthScorePose, parkPose);
     }
 
     Command startIntake = instant(() -> intake.setPower(1.0));
@@ -93,12 +91,14 @@ public class CloseAutoOpMode extends AutoOpMode {
 
     @Override
     public void buildSchedule() {
-        schedule(follow(motion.follower, firstScore()));
-        //schedule(startIntake);
-        //schedule(follow(motion.follower, secondScore()));
-        //schedule(stopIntake);
-        //schedule(follow(motion.follower, thirdScore()));
-        //schedule(follow(motion.follower, fourthScore()));
-        //schedule(follow(motion.follower, park()));
+        schedule(sequential(
+                follow(motion.follower, firstScore()),
+                startIntake,
+                follow(motion.follower, secondScore()),
+                stopIntake,
+                follow(motion.follower, thirdScore()),
+                follow(motion.follower, fourthScore()),
+                follow(motion.follower, park())
+        ));
     }
 }
