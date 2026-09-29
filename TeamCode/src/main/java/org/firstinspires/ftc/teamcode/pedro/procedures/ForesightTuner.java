@@ -31,7 +31,7 @@ public class ForesightTuner extends Procedure {
 
     @Override
     public void run() throws InterruptedException {
-        Inputs tunerSelection = inputs("Tuner", "0 (max velocity), 1 (v deccel), 2 (heading braking), 3 (translationonal)");
+        Inputs tunerSelection = inputs("Tuner", "0 (max velocity), 1 (v deccel), 2 (heading braking), 3 (translationonal), 4 (heading)");
         Inputs.Field<Double> tuner = tunerSelection.d("Tuner").withDefault(0.0);
         awaitInputs(tunerSelection);
 
@@ -80,23 +80,43 @@ public class ForesightTuner extends Procedure {
                 break;
             case 2:
                 List<Double> headingBraking = runOpMode(new HeadingBraking(localizerFunction, drivetrainFunction));
-                double heading = runOpMode(new HeadingTuner(localizerFunction, drivetrainFunction));
                 double headingLinear = headingBraking.get(0);
                 double headingQuadratic = headingBraking.get(1);
                 result("headingBrakingLinearCoefficient", headingLinear);
                 result("headingBrakingQuadraticCoefficient", headingQuadratic);
+
+                code(Language.JAVA,
+                        "public static ForesightConfig foresightConfig = new ForesightConfig(\n" +
+                                "            c -> {\n" +
+                                "                c.headingBrakeCoefficients.set(Vector2D.cartesian("+headingLinear+", "+headingQuadratic+"));\n" +
+                                "            }\n" +
+                                "            }\n" +
+                                "    );");
+
+                break;
+            case 4:
+                double heading = runOpMode(new HeadingTuner(localizerFunction, drivetrainFunction));
                 result("heading kP", heading);
 
+                code(Language.JAVA,
+                        "public static ForesightConfig foresightConfig = new ForesightConfig(\n" +
+                                "            c -> {\n" +
+                                "                c.headingFeedback.set(Controller.proportional("+heading+"));\n" +
+                                "            }\n" +
+                                "            }\n" +
+                                "    );");
+                break;
+            case 5:
                 Inputs distanceBrakingInput = inputs("Distance", "The distance to drive in inches for the Forward and Strafe Braking Identifiers");
                 Inputs.Field<Double> distanceBraking = distanceBrakingInput.d("Distance").withDefault(36.0);
                 awaitInputs(distanceBrakingInput);
-
+/*
                 List<Double> forwardBraking = runOpMode(new ForwardBraking(localizerFunction, drivetrainFunction, headingLinear, headingQuadratic, heading, distanceBraking.get()));
                 double forwardLinear = forwardBraking.get(0);
                 double forwardQuadratic = forwardBraking.get(1);
                 result("forwardBrakingLinearCoefficient", forwardLinear);
                 result("forwardBrakingQuadraticCoefficient", forwardQuadratic);
-
+*/
                 // Redundent for swerve
                 //List<Double> strafeBraking = runOpMode(new StrafeBraking(localizerFunction, drivetrainFunction, headingLinear, headingQuadratic, heading, distanceBraking.get()));
                 //double strafeLinear = strafeBraking.get(0);
@@ -107,10 +127,6 @@ public class ForesightTuner extends Procedure {
                 code(Language.JAVA,
                         "public static ForesightConfig foresightConfig = new ForesightConfig(\n" +
                                 "            c -> {\n" +
-                                "                c.headingFeedback.set(Controller.proportional("+heading+"));\n" +
-                                "                c.headingBrakeCoefficients.set(Vector2D.cartesian("+headingLinear+", "+headingQuadratic+"));\n" +
-                                "                c.linearBrakeCoefficients.set(Matrix.diag("+forwardLinear+", "+forwardLinear+"));\n" +
-                                "                c.quadraticBrakeCoefficients.set(Matrix.diag("+forwardQuadratic+", "+forwardQuadratic+"));\n" +
                                 "            }\n" +
                                 "            }\n" +
                                 "    );");

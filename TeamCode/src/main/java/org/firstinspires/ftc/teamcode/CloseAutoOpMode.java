@@ -18,6 +18,7 @@ public class CloseAutoOpMode extends AutoOpMode {
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
+    private Pose startPose;
     private Pose firstScorePose;
     private Pose secondScorePose;
     private Pose thirdScorePose;
@@ -50,6 +51,7 @@ public class CloseAutoOpMode extends AutoOpMode {
         final double parkY = 30.0;
         final double parkAngle = 90.0;
 
+        startPose = poseFactory.of(startPoseX, startPoseY, startPoseAngle);
         firstScorePose = poseFactory.of(firstScorePoseX, firstScorePoseY, firstScorePoseAngle);
         secondScorePose = poseFactory.of(secondScorePoseX, secondScorePoseY, secondScorePoseAngle);
         thirdScorePose = poseFactory.of(thirdScorePoseX, thirdScorePoseY, thirdScorePoseAngle);
@@ -62,8 +64,8 @@ public class CloseAutoOpMode extends AutoOpMode {
     }
 
     private Path firstScore() {
-        Pose currentPose = motion.follower.pose();
-        return line(currentPose, firstScorePose).linear(currentPose, firstScorePose);
+        //Pose currentPose = motion.follower.pose();
+        return line(startPose, firstScorePose).linear(startPose, firstScorePose);
     }
 
     private Path secondScore() {
@@ -92,11 +94,11 @@ public class CloseAutoOpMode extends AutoOpMode {
     @Override
     public void buildSchedule() {
         schedule(follow(motion.follower, firstScore()));
-        schedule(startIntake);
-        schedule(follow(motion.follower, secondScore()));
-        schedule(stopIntake);
-        schedule(follow(motion.follower, thirdScore()));
-        schedule(follow(motion.follower, fourthScore()));
-        schedule(follow(motion.follower, park()));
+        //schedule(startIntake);
+        //schedule(follow(motion.follower, secondScore()));
+        //schedule(stopIntake);
+        //schedule(follow(motion.follower, thirdScore()));
+        //schedule(follow(motion.follower, fourthScore()));
+        //schedule(follow(motion.follower, park()));
     }
 }

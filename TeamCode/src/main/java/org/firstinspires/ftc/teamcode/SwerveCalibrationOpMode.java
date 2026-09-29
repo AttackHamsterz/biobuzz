@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import com.pedropathing.algorithm.Foresight;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.revhub.drivetrains.Swerve;
 import com.pedropathing.revhub.localizers.PinpointLocalizer;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -11,6 +10,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 import org.firstinspires.ftc.teamcode.pedro.GearedCoaxialPod;
+import org.firstinspires.ftc.teamcode.pedro.HamSwerve;
 
 import java.util.List;
 
@@ -98,7 +98,7 @@ public class SwerveCalibrationOpMode extends OpMode {
         blPod = new Pod(blGPod, Constants.BACK_LEFT_ZERO, Constants.BACK_LEFT_MIN+ds, Constants.BACK_LEFT_MAX-ds);
         brPod = new Pod(brGPod, Constants.BACK_RIGHT_ZERO, Constants.BACK_RIGHT_MIN+ds, Constants.BACK_RIGHT_MAX-ds);
 
-        Swerve swerve = new Swerve(hardwareMap, Constants.driveConfig,
+        HamSwerve swerve = new HamSwerve(hardwareMap, Constants.driveConfig,
                 blGPod, flGPod, brGPod, frGPod);
         Foresight foresight = new Foresight(Constants.foresightConfig);
         PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, Constants.localizerConfig);
@@ -141,27 +141,30 @@ public class SwerveCalibrationOpMode extends OpMode {
         }else{
             pressed = false;
         }
+
+        double scaleFactor = 0.1;
+        double f = -gamepad1.left_stick_y * scaleFactor;    // Up on stick is negative but we want the robot to go forward (positive y)
+        double l = gamepad1.left_stick_x * scaleFactor;     // Left on stick is negative, this matches (negative x)
+        double t = -gamepad1.right_stick_x * scaleFactor;   // Left on stick is negative but we want a positive CCW rotation)
+
         if(gamepad1.dpad_up){
-            flPod.pod.setDrivePower(-gamepad1.left_stick_y);
-            flPod.pod.setServoPower(-gamepad1.left_stick_x);
+            flPod.pod.setDrivePower(f);
+            flPod.pod.setServoPower(-l);
         }
         else if(gamepad1.dpad_right){
-            frPod.pod.setDrivePower(-gamepad1.left_stick_y);
-            frPod.pod.setServoPower(-gamepad1.left_stick_x);
+            frPod.pod.setDrivePower(f);
+            frPod.pod.setServoPower(-l);
         }
         else if(gamepad1.dpad_left) {
-            blPod.pod.setDrivePower(-gamepad1.left_stick_y);
-            blPod.pod.setServoPower(-gamepad1.left_stick_x);
+            blPod.pod.setDrivePower(f);
+            blPod.pod.setServoPower(-l);
         }
         else if(gamepad1.dpad_down) {
-            brPod.pod.setDrivePower(-gamepad1.left_stick_y);
-            brPod.pod.setServoPower(-gamepad1.left_stick_x);
+            brPod.pod.setDrivePower(f);
+            brPod.pod.setServoPower(-l);
         }
         else{
-            double f = -gamepad1.left_stick_y;
-            double s = -gamepad1.left_stick_x;
-            double t = -gamepad1.right_stick_x;
-            follower.manual(f, s, t);
+            follower.manual(f, l, t);
             follower.update();
         }
 

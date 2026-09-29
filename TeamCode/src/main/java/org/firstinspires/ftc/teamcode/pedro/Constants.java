@@ -7,7 +7,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Matrix;
 import com.pedropathing.math.Vector2D;
 import com.pedropathing.revhub.drivetrains.CoaxialPodConfig;
-import com.pedropathing.revhub.drivetrains.Swerve;
 import com.pedropathing.revhub.drivetrains.SwerveConfig;
 import com.pedropathing.revhub.localizers.PinpointConfig;
 import com.pedropathing.revhub.localizers.PinpointLocalizer;
@@ -49,10 +48,9 @@ public class Constants {
                 c.analogMinVoltage.set(FRONT_LEFT_MIN);
                 c.analogMaxVoltage.set(FRONT_LEFT_MAX);
                 c.angleOffsetRad.set(FRONT_LEFT_ZERO);
-                c.podOffset.set(Vector2D.cartesian(6.75, -6.75));
+                c.podOffset.set(Vector2D.cartesian(-6.75, 6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
-                c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
                                 .plus(Controller.proportionalFeedforward(FL_TURN_F)));
@@ -68,7 +66,6 @@ public class Constants {
                 c.podOffset.set(Vector2D.cartesian(6.75, 6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
-                c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
                                 .plus(Controller.proportionalFeedforward(FR_TURN_F)));
@@ -84,7 +81,6 @@ public class Constants {
                 c.podOffset.set(Vector2D.cartesian(-6.75, -6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
-                c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
                                 .plus(Controller.proportionalFeedforward(BL_TURN_F)));
@@ -97,10 +93,9 @@ public class Constants {
                 c.analogMinVoltage.set(BACK_RIGHT_MIN);
                 c.analogMaxVoltage.set(BACK_RIGHT_MAX);
                 c.angleOffsetRad.set(BACK_RIGHT_ZERO);
-                c.podOffset.set(Vector2D.cartesian(-6.75, 6.75));
+                c.podOffset.set(Vector2D.cartesian(6.75, -6.75));
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
-                c.encoderReversed.set(false);
                 c.turnController.set(
                         Controller.pid(TURN_P, TURN_I, TURN_D)
                                 .plus(Controller.proportionalFeedforward(BR_TURN_F)));
@@ -110,8 +105,9 @@ public class Constants {
     public static PinpointConfig localizerConfig = new PinpointConfig(
             c -> {
                 c.name.set("pinpoint");
+                c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
                 c.xPodOffset.set(3.853);
-                c.yPodOffset.set(2.27);
+                c.yPodOffset.set(-2.27);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
                 c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
             }
@@ -121,7 +117,7 @@ public class Constants {
             c -> {
                 c.zeroPowerBehavior.set(SwerveConfig.ZeroPowerBehavior.IGNORE_ANGLE_CHANGES);
                 c.manualBrakeMode.set(true);
-                c.voltageCompensation.set(true);
+                c.voltageCompensation.set(false);
                 c.staticFrictionCoefficient.set(FRICTION_COEF);
             }
     );
@@ -138,6 +134,7 @@ public class Constants {
             c.coast.set(Controller.proportionalFeedforward(0.01244254832154185));
             c.brake.set(Controller.proportionalFeedforward(0.010576166073310573));
 
+            // BUSTED RIGHT NOW
             c.headingFeedback.set(Controller.proportional(5.258721785960744));
             c.headingBrakeCoefficients.set(Vector2D.cartesian(0.05642143125655298, 0.0063829525363003695));
             c.linearBrakeCoefficients.set(Matrix.diag(0.10605894992901523, 0.08719146175596092));
@@ -156,7 +153,7 @@ public class Constants {
         GearedCoaxialPod backLeftPod = new GearedCoaxialPod(hardwareMap, backLeft);
         GearedCoaxialPod backRightPod = new GearedCoaxialPod(hardwareMap, backRight);
         PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, localizerConfig);
-        Swerve swerve = new Swerve(hardwareMap, driveConfig,
+        HamSwerve swerve = new HamSwerve(hardwareMap, driveConfig,
                 backLeftPod, frontLeftPod, backRightPod, frontRightPod);
         Foresight foresight = new Foresight(foresightConfig);
         return new Follower(localizer, swerve, foresight);
