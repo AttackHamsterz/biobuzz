@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.groups.Groups.sequential;
+import static com.pedropathing.ivy.groups.Groups.parallel;
 import static com.pedropathing.ivy.pedro.PedroCommands.follow;
 
 @Autonomous(name = "Auto: Close", group = "Robot")
@@ -92,10 +93,10 @@ public class CloseAutoOpMode extends AutoOpMode {
     @Override
     public void buildSchedule() {
         schedule(sequential(
-                follow(motion.follower, firstScore()),
-                startIntake,
-                follow(motion.follower, secondScore()),
-                stopIntake,
+                parallel(follow(motion.follower, firstScore()),
+                    startIntake),
+                parallel(follow(motion.follower, secondScore()),
+                    stopIntake),
                 follow(motion.follower, thirdScore()),
                 follow(motion.follower, fourthScore()),
                 follow(motion.follower, park())
