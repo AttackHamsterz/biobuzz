@@ -115,7 +115,7 @@ public class HamSwerve implements Drivetrain {
 
     public void applyDrive(DrivePowers powers) {
         double forward = powers.forward();
-        double strafe = powers.strafe();
+        double strafe = -powers.strafe();
         double rotation = powers.turn();
 
         lastForward = forward;
@@ -170,7 +170,7 @@ public class HamSwerve implements Drivetrain {
 
     public Vector2D[] computePodPowers(DrivePowers powers) {
         double forward = powers.forward();
-        double strafe = powers.strafe();
+        double strafe = -powers.strafe();
         double rotation = powers.turn();
 
         Vector2D[] podVectors = new Vector2D[pods.size()];

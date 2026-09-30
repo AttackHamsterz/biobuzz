@@ -57,7 +57,7 @@ public class Motion extends RobotPart {
                 return;
             }
             double rawForward = -ssom.gamepad1.left_stick_y;    // Up on stick is negative but we want the robot to go forward (positive y)
-            double rawLateral = ssom.gamepad1.left_stick_x;     // Left on stick is negative, this matches (negative x)
+            double rawLateral = -ssom.gamepad1.left_stick_x;     // Left on stick is negative, want positive to match autonomous follower
             double rawHeading = -ssom.gamepad1.right_stick_x;   // Left on stick is negative but we want a positive CCW rotation)
             double forward = conditionInput(rawForward);
             double lateral = conditionInput(rawLateral);

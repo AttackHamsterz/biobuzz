@@ -49,7 +49,7 @@ public class CloseAutoOpMode extends AutoOpMode {
 
         final double fourthScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
         final double fourthScorePoseY = 40.0;
-        final double fourthScorePoseAngle = 90.0;
+        final double fourthScorePoseAngle = 180.0;
 
         final double parkX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
         final double parkY = 20.0;

@@ -142,10 +142,9 @@ public class SwerveCalibrationOpMode extends OpMode {
             pressed = false;
         }
 
-        double scaleFactor = 0.1;
-        double f = -gamepad1.left_stick_y * scaleFactor;    // Up on stick is negative but we want the robot to go forward (positive y)
-        double l = gamepad1.left_stick_x * scaleFactor;     // Left on stick is negative, this matches (negative x)
-        double t = -gamepad1.right_stick_x * scaleFactor;   // Left on stick is negative but we want a positive CCW rotation)
+        double f = -gamepad1.left_stick_y * Constants.TESTING_POWER_LIMIT;    // Up on stick is negative but we want the robot to go forward (positive y)
+        double l = -gamepad1.left_stick_x * Constants.TESTING_POWER_LIMIT;    // Left on stick is negative, want positive to match autonomous follower
+        double t = -gamepad1.right_stick_x * Constants.TESTING_POWER_LIMIT;   // Left on stick is negative but we want a positive CCW rotation)
 
         if(gamepad1.dpad_up){
             flPod.pod.setDrivePower(f);
