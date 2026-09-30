@@ -27,31 +27,33 @@ public class CloseAutoOpMode extends AutoOpMode {
     private Pose fourthScorePose;
     private Pose parkPose;
 
+    // Red is on the left side when facing from the audience and contains 0,0
+    // Blue is on the right side when facing from the audience and contains (144, 144)
     @Override public void init() {
         final double centerLineX = 72.0;
-        final double startPoseX = (color == COLOR.BLUE) ? centerLineX-10 : centerLineX+10;
-        final double startPoseY = 72.0;
-        final double startPoseAngle = (color == COLOR.BLUE) ? 0 : 180;
+        final double startPoseX = (color == COLOR.RED) ? centerLineX-10 : centerLineX+10;
+        final double startPoseY = 9.0;
+        final double startPoseAngle = 90.0;
 
-        final double firstScorePoseX = (color == COLOR.BLUE) ? centerLineX-30.0 : centerLineX+30;
-        final double firstScorePoseY = 80.0;
-        final double firstScorePoseAngle = (color == COLOR.BLUE) ? 45 : 135;
+        final double firstScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
+        final double firstScorePoseY = 20.0;
+        final double firstScorePoseAngle = 90.0;
 
-        final double secondScorePoseX = (color == COLOR.BLUE) ? centerLineX-27.0 : centerLineX+27;
+        final double secondScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
         final double secondScorePoseY = 40.0;
-        final double secondScorePoseAngle = -90.0;
+        final double secondScorePoseAngle = 90.0;
 
-        final double thirdScorePoseX = (color == COLOR.BLUE) ? centerLineX-20.0 : centerLineX+20;
-        final double thirdScorePoseY = 60.0;
-        final double thirdScorePoseAngle = (color == COLOR.BLUE) ? 180: 0;
+        final double thirdScorePoseX = (color == COLOR.RED) ? centerLineX-30.0 : centerLineX+30;
+        final double thirdScorePoseY = 40.0;
+        final double thirdScorePoseAngle = 90.0;
 
-        final double fourthScorePoseX = (color == COLOR.BLUE) ? centerLineX-90.0 : centerLineX+90;
-        final double fourthScorePoseY = 30.0;
-        final double fourthScorePoseAngle = (color == COLOR.BLUE) ? 130: 50;
+        final double fourthScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
+        final double fourthScorePoseY = 40.0;
+        final double fourthScorePoseAngle = 90.0;
 
-        final double parkX = (color == COLOR.BLUE) ? centerLineX-15.0 : centerLineX+15;
-        final double parkY = 30.0;
-        final double parkAngle = 90.0;
+        final double parkX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
+        final double parkY = 20.0;
+        final double parkAngle =  180.0;
 
         startPose = poseFactory.of(startPoseX, startPoseY, startPoseAngle);
         firstScorePose = poseFactory.of(firstScorePoseX, firstScorePoseY, firstScorePoseAngle);

@@ -16,6 +16,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Constants {
 
+    public static final double TESTING_POWER_LIMIT = 0.5;
+
     public static final double FRONT_LEFT_ZERO = 2.442;
     public static final double FRONT_LEFT_MIN = 0.013;
     public static final double FRONT_LEFT_MAX = 3.225;
@@ -106,8 +108,8 @@ public class Constants {
             c -> {
                 c.name.set("pinpoint");
                 c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-                c.xPodOffset.set(3.853);
-                c.yPodOffset.set(-2.27);
+                c.xPodOffset.set(4.25);
+                c.yPodOffset.set(-2.48);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
                 c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
             }

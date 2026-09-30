@@ -126,8 +126,12 @@ public class GearedCoaxialPod implements SwervePod {
     public double targetPower = 0;
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
+        // Debug
         targetAngle = targetAngleRad * 180.0 / Math.PI;
         targetPower = drivePower;
+
+        // Limit power
+        drivePower *= Constants.TESTING_POWER_LIMIT;
 
         // Convert hardware angle to radians and normalize
         double actualRad = getAngle();
@@ -219,6 +223,7 @@ public class GearedCoaxialPod implements SwervePod {
     }
 
     public void setDrivePower(double power){
+        power *= Constants.TESTING_POWER_LIMIT;
         lastDrivePower = power;
         motor.setPower(power);
     }

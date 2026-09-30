@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
+import com.pedropathing.paths.PathSegment;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
@@ -89,14 +90,23 @@ public class Motion extends RobotPart {
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 1) !=0) {
             Pose pose = follower.localizer.pose();
+            PathSegment segment = follower.currentSegment();
+            Pose targetPose = (segment == null) ? null : follower.currentSegment().endPose();
 
             if(pose != null) {
                 telemetry.addData("f", f);
                 telemetry.addData("s", s);
                 telemetry.addData("t", t);
-                telemetry.addData("X", pose.x());
-                telemetry.addData("Y", pose.y());
-                telemetry.addData("Heading",Math.toDegrees(pose.heading()));
+                if(pose != null) {
+                    telemetry.addData("X", pose.x());
+                    telemetry.addData("Y", pose.y());
+                    telemetry.addData("H", Math.toDegrees(pose.heading()));
+                }
+                if(targetPose != null) {
+                    telemetry.addData("TX", targetPose.x());
+                    telemetry.addData("TY", targetPose.y());
+                    telemetry.addData("TH", Math.toDegrees(targetPose.heading()));
+                }
             }
         }
     }
