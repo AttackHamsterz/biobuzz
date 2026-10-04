@@ -44,7 +44,6 @@ public class GearedCoaxialPod implements SwervePod {
     private final double analogZeroVoltage;
     private double startAngleFraction;
 
-    private final boolean encoderReversed;
     private final double servoCachingThreshold;
     private final double motorCachingThreshold;
     private double lastDrivePower = 0;
@@ -63,10 +62,9 @@ public class GearedCoaxialPod implements SwervePod {
         analogMinVoltage = config.analogMinVoltage.get();
         analogMaxVoltage = config.analogMaxVoltage.get();
         analogZeroVoltage = config.angleOffsetRad.get();
-        encoderReversed = config.encoderReversed.get();
         servoCachingThreshold = config.servoCachingThreshold.get();
         motorCachingThreshold = config.motorCachingThreshold.get();
-
+        // Counter acts the control hub flipping the encoder when reversing the motor
         flipDigitalEncoder = config.driveDirection.get() == DcMotorSimple.Direction.REVERSE;
         motor.setDirection(config.driveDirection.get());
         servo.setDirection(config.servoDirection.get());
@@ -117,40 +115,27 @@ public class GearedCoaxialPod implements SwervePod {
         return ((((double)encoderCount * ELC_SCALE_FACTOR + startAngleFraction) + 1.0) % 1.0) * TWO_PI;
     }
 
-    /**
-     * Sets turn servo power in [-1, 1].
-     * @param power turn servo power
-     */
-    public void setServoPower(double power) {
-        lastTurnPower = power;
-        servo.setPower(power);
-    }
-
-    /**
-     * Sets drive motor power in [-1, 1].
-     * @param power drive motor power
-     */
-    public void setMotorPower(double power) {
-        lastDrivePower = power;
-        motor.setPower(power);
-    }
-
     @Override
     public double adjustThetaForEncoder(double wheelTheta) {
-        // Our encoder assumes forward is 0 radians rotating counter clockwise
-        // Pedro pathing angles are 0 degrees right rotating counter clockwise
-        //return MathFunctions.normalizeAngle(wheelTheta - Math.PI / 2.0);
-
-        // wheelTheta is in radians. If encoder is reversed, use wheelTheta directly; otherwise invert.
-        //if encoder is reversed, ccw (top down) is positive, if unreversed than cw is positive
-        double t = encoderReversed ? wheelTheta : (2 * Math.PI - wheelTheta);
-        // servo zero offset: +90 degrees -> +pi/2 radians
-        t += Math.PI / 2.0;
-        return Angle.normalize(t);
+        // Pedro Pathing is 0 degrees to the right, 90 forward, 180 left and 270 down
+        // Our encoder is 270 degrees to the right, 0 forward, 90 left, 180 down
+        return Angle.normalize((wheelTheta - Math.PI / 2.0));
     }
+
+    public double targetAngle = 0;
+    public double targetPower = 0;
 
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
+        move(targetAngleRad, drivePower, ignoreAngleChanges, true);
+    }
+
+    public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges, boolean minimizeRotation) {
+        drivePower *= Constants.TESTING_POWER_LIMIT;
+        // Debug
+        targetAngle = targetAngleRad * 180.0 / Math.PI;
+        targetPower = drivePower;
+
         // Convert hardware angle to radians and normalize
         double actualRad = getAngle();
         actualRad = Angle.normalize(actualRad);
@@ -159,13 +144,13 @@ public class GearedCoaxialPod implements SwervePod {
         // Shortest-path error in radians (signed)
         double mag = Angle.smallestDifference(actualRad, desiredRad);
         double dir = Angle.turnDirection(actualRad, desiredRad);
-        double signedRad = (mag == Math.PI) ? -Math.PI : mag * dir;
+        double signedRad = mag * dir;//(mag == Math.PI) ? -Math.PI : mag * dir;
 
         // PID uses radians (tune PIDF for radian error)
         double errorRad = signedRad;
 
         // Minimize rotation: flip + invert drive if > 90°
-        if (Math.abs(errorRad) > (Math.PI / 2.0)) {
+        if (minimizeRotation && Math.abs(errorRad) > (Math.PI / 2.0)) {
             // add 180 degrees (pi radians)
             desiredRad = Angle.normalize(desiredRad + Math.PI);
             drivePower = -drivePower;
@@ -173,12 +158,11 @@ public class GearedCoaxialPod implements SwervePod {
             // recompute signed error
             mag = Angle.smallestDifference(actualRad, desiredRad);
             dir = Angle.turnDirection(actualRad, desiredRad);
-            signedRad = (mag == Math.PI) ? -Math.PI : mag * dir;
+            signedRad = mag * dir;//(mag == Math.PI) ? -Math.PI : mag * dir;
             errorRad = signedRad;
         }
 
         // Setpoint close to current so PID follows shortest path
-        double setpointRad = actualRad + errorRad;
         double turnPower;
         if (Math.abs(errorRad) < (2.0 * Math.PI / 180.0)) {
             turnPower = Utils.clamp(
@@ -203,7 +187,7 @@ public class GearedCoaxialPod implements SwervePod {
 
         if (Math.abs(drivePower - lastDrivePower) > motorCachingThreshold || (drivePower == 0 && lastDrivePower != 0)) {
             lastDrivePower = drivePower;
-            //motor.setPower(drivePower);
+            motor.setPower(drivePower);
         }
     }
 
@@ -225,5 +209,28 @@ public class GearedCoaxialPod implements SwervePod {
         map.put("servoPower", servo.getPower());
         map.put("drivePower", motor.getPower());
         return map;
+    }
+
+    // Tuning helpers
+    public double getVoltage(){
+        return encoder.getVoltage();
+    }
+
+    public int getEncoderCount(){
+        return flipDigitalEncoder ? -motor.getCurrentPosition() : motor.getCurrentPosition();
+    }
+
+    public double getStartAngleFraction(){
+        return startAngleFraction;
+    }
+
+    public void setDrivePower(double power){
+        lastDrivePower = power;
+        motor.setPower(power);
+    }
+
+    public void setServoPower(double power){
+        lastTurnPower = power;
+        servo.setPower(power);
     }
 }
