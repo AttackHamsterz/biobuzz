@@ -10,9 +10,14 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import static com.pedropathing.ivy.Scheduler.schedule;
 import static com.pedropathing.ivy.commands.Commands.instant;
+import static com.pedropathing.ivy.commands.Commands.waitMs;
+import static com.pedropathing.ivy.groups.Groups.race;
+import static com.pedropathing.ivy.groups.Groups.repeat;
 import static com.pedropathing.ivy.groups.Groups.sequential;
 import static com.pedropathing.ivy.groups.Groups.parallel;
 import static com.pedropathing.ivy.pedro.PedroCommands.follow;
+
+import org.firstinspires.ftc.teamcode.pedro.HamFollower;
 
 @Autonomous(name = "Auto: Close", group = "Robot")
 @Disabled
@@ -91,6 +96,7 @@ public class CloseAutoOpMode extends AutoOpMode {
 
     Command startIntake = instant(() -> intake.setPower(1.0));
     Command stopIntake = instant(() -> intake.setPower(0.0));
+    Command zeroSwerve = instant(() -> ((HamFollower)motion.follower).zero());
 
     @Override
     public void buildSchedule() {
@@ -101,7 +107,9 @@ public class CloseAutoOpMode extends AutoOpMode {
                     stopIntake),
                 follow(motion.follower, thirdScore()),
                 follow(motion.follower, fourthScore()),
-                follow(motion.follower, park())
+                follow(motion.follower, park()),
+                race(repeat(zeroSwerve, 1000),
+                    waitMs(2000))
         ));
     }
 }

@@ -124,8 +124,14 @@ public class GearedCoaxialPod implements SwervePod {
 
     public double targetAngle = 0;
     public double targetPower = 0;
+
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
+        move(targetAngleRad, drivePower, ignoreAngleChanges, true);
+    }
+
+    public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges, boolean minimizeRotation) {
+        drivePower *= Constants.TESTING_POWER_LIMIT;
         // Debug
         targetAngle = targetAngleRad * 180.0 / Math.PI;
         targetPower = drivePower;
@@ -138,13 +144,13 @@ public class GearedCoaxialPod implements SwervePod {
         // Shortest-path error in radians (signed)
         double mag = Angle.smallestDifference(actualRad, desiredRad);
         double dir = Angle.turnDirection(actualRad, desiredRad);
-        double signedRad = (mag == Math.PI) ? -Math.PI : mag * dir;
+        double signedRad = mag * dir;//(mag == Math.PI) ? -Math.PI : mag * dir;
 
         // PID uses radians (tune PIDF for radian error)
         double errorRad = signedRad;
 
         // Minimize rotation: flip + invert drive if > 90°
-        if (Math.abs(errorRad) > (Math.PI / 2.0)) {
+        if (minimizeRotation && Math.abs(errorRad) > (Math.PI / 2.0)) {
             // add 180 degrees (pi radians)
             desiredRad = Angle.normalize(desiredRad + Math.PI);
             drivePower = -drivePower;
@@ -152,12 +158,11 @@ public class GearedCoaxialPod implements SwervePod {
             // recompute signed error
             mag = Angle.smallestDifference(actualRad, desiredRad);
             dir = Angle.turnDirection(actualRad, desiredRad);
-            signedRad = (mag == Math.PI) ? -Math.PI : mag * dir;
+            signedRad = mag * dir;//(mag == Math.PI) ? -Math.PI : mag * dir;
             errorRad = signedRad;
         }
 
         // Setpoint close to current so PID follows shortest path
-        double setpointRad = actualRad + errorRad;
         double turnPower;
         if (Math.abs(errorRad) < (2.0 * Math.PI / 180.0)) {
             turnPower = Utils.clamp(

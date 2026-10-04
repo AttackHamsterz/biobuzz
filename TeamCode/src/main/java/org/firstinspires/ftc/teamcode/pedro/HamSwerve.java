@@ -114,6 +114,8 @@ public class HamSwerve implements Drivetrain {
     }
 
     public void applyDrive(DrivePowers powers) {
+        if (powers == null) return;
+
         double forward = powers.forward();
         double strafe = -powers.strafe();
         double rotation = powers.turn();
@@ -197,6 +199,55 @@ public class HamSwerve implements Drivetrain {
         }
 
         return podVectors;
+    }
+
+    public void zero(){
+        double forward = 1;
+        double strafe = 0;
+        double rotation = 0;
+
+        lastForward = forward;
+        lastStrafe = strafe;
+        lastRotation = rotation;
+
+        Vector2D[] podVectors = computePodPowers(new DrivePowers(forward, strafe, rotation));
+
+        // finding if any vector has magnitude > maxPowerScaling
+        double maxMagnitude = 1;
+        for (int i = 0; i < podVectors.length; i++) {
+            if (config.voltageCompensation.get()) {
+                double voltageNormalized = getVoltageNormalized();
+                podVectors[i] = podVectors[i].times(voltageNormalized);
+            }
+            maxMagnitude = Math.max(maxMagnitude, podVectors[i].magnitude());
+        }
+
+        powerScaling = 1 / maxMagnitude;
+
+        // Find the avg scaling constant (avg of cos(angle error))
+        double avgScaling = 0;
+
+        for (int i = 0; i < pods.size(); i++) {
+            double currentRad = pods.get(i).getAngle();
+
+            // ask the pod to translate the wheel-space theta into the encoder frame
+            double targetRad = pods.get(i).adjustThetaForEncoder(podVectors[i].theta());
+
+            // compute shortest signed error in radians using MathFunctions
+            double mag = Angle.smallestDifference(currentRad, targetRad);
+            double dir = Angle.turnDirection(currentRad, targetRad);
+            double errorRad = (mag == Math.PI) ? -Math.PI : mag * dir;
+
+            avgScaling += Math.abs(Math.cos(errorRad));
+        }
+
+        avgScaling /= pods.size();
+        lastAvgScaling = avgScaling;
+
+        for (int podNum = 0; podNum < pods.size(); podNum++) {
+            GearedCoaxialPod pod = (GearedCoaxialPod)pods.get(podNum);
+            pod.move(podVectors[podNum].theta(), 0, false, false);
+        }
     }
 
     @Override

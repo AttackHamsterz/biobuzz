@@ -24,6 +24,7 @@ public class SwerveCalibrationOpMode extends OpMode {
     private Pod brPod;
     private Follower follower;
     private boolean pressed = false;
+    private HamSwerve swerve;
 
     /**
      * A pod has everything we need for swerve.  This module uses the analog
@@ -98,7 +99,7 @@ public class SwerveCalibrationOpMode extends OpMode {
         blPod = new Pod(blGPod, Constants.BACK_LEFT_ZERO, Constants.BACK_LEFT_MIN+ds, Constants.BACK_LEFT_MAX-ds);
         brPod = new Pod(brGPod, Constants.BACK_RIGHT_ZERO, Constants.BACK_RIGHT_MIN+ds, Constants.BACK_RIGHT_MAX-ds);
 
-        HamSwerve swerve = new HamSwerve(hardwareMap, Constants.driveConfig,
+        swerve = new HamSwerve(hardwareMap, Constants.driveConfig,
                 blGPod, flGPod, brGPod, frGPod);
         Foresight foresight = new Foresight(Constants.foresightConfig);
         PinpointLocalizer localizer = new PinpointLocalizer(hardwareMap, Constants.localizerConfig);
@@ -161,6 +162,10 @@ public class SwerveCalibrationOpMode extends OpMode {
         else if(gamepad1.dpad_down) {
             brPod.pod.setDrivePower(f);
             brPod.pod.setServoPower(-l);
+        }
+        else if(gamepad1.y)
+        {
+            swerve.zero();
         }
         else{
             follower.manual(f, l, t);
