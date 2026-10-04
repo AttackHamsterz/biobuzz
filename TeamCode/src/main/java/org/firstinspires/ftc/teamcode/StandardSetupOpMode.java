@@ -44,7 +44,7 @@ public class StandardSetupOpMode extends OpMode {
     public Motion motion;
     public Intake intake;
     //public BallLifter ballLifter;
-
+    public BallStopper ballStopper;
     private ScheduledExecutorService threadPool;
 
     protected List<LynxModule> allHubs;
@@ -63,10 +63,11 @@ public class StandardSetupOpMode extends OpMode {
         motion = new Motion(this);
         intake = new Intake(this);
         //ballLifter = new BallLifter(this);
-
+        ballStopper = new BallStopper(this);
         // Add parts to parts list
         partsList.add(Map.entry(motion, 20));
         partsList.add(Map.entry(intake, 20));
+        partsList.add(Map.entry(ballStopper, 20));
 
         // Init parts
         for (Map.Entry<RobotPart, Integer> entry : partsList) {
