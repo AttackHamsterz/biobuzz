@@ -58,7 +58,7 @@ public class CloseAutoOpMode extends AutoOpMode {
 
         final double parkX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
         final double parkY = 20.0;
-        final double parkAngle =  180.0;
+        final double parkAngle =  90.0;
 
         startPose = poseFactory.of(startPoseX, startPoseY, startPoseAngle);
         firstScorePose = poseFactory.of(firstScorePoseX, firstScorePoseY, firstScorePoseAngle);
