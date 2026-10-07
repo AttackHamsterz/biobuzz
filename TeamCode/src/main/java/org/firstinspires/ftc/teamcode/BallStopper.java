@@ -24,7 +24,7 @@ public class BallStopper extends RobotPart {
         this.ssom = ssom;
 
         ballServo = ssom.hardwareMap.get(Servo.class, "ball_stop");
-        ballServo.setPosition(POSITION_CLOSED);
+        ballServo.setPosition(ALL_CLOSED);
     }
 
     @Override
@@ -44,12 +44,12 @@ public class BallStopper extends RobotPart {
             if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper)
             {
 
-                if  (ballServo.getPosition() < POSITION_CLOSED) {
-                    ballServo.setPosition((NECTAR_CLOSED));// 0.0
+                if  (ballServo.getPosition() < ALL_CLOSED) {
+                    ballServo.setPosition((NECTAR_POLLEN_OPEN));// 0.0
                 }
                 else
                 {
-                    ballServo.setPosition((POLLEN_OPEN_1));// 1.00
+                    ballServo.setPosition((POLLEN_NECTAR_OPEN));// 1.00
                 }
 
             }
@@ -63,7 +63,7 @@ public class BallStopper extends RobotPart {
 
             }
             else {
-                ballServo.setPosition((POSITION_CLOSED)); // 0.5
+                ballServo.setPosition((ALL_CLOSED)); // 0.5
             }
           /*   if (this.ssom.gamepad1.right_trigger_pressed)
             {
