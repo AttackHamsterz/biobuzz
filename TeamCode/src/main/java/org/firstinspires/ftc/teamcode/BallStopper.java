@@ -11,9 +11,9 @@ public class BallStopper extends RobotPart {
     public Servo ballServo = null;
 
     private static final double NECTAR_POLLEN_OPEN = 0.0;
-    private static final double NECTAR_OPEN = 0.225;
+    private static final double NECTAR_OPEN = 0.25;
     private static final double ALL_CLOSED = 0.5;
-    private static final double POLLEN_OPEN = 0.78;
+    private static final double POLLEN_OPEN = 0.8;
 
     private static final double POLLEN_NECTAR_OPEN = 1.00;
 
