@@ -7,14 +7,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Intake extends RobotPart{
     private static final double ENOUGH_JOYSTICK = 0.1;
     private static final double MOTOR = 1;
-    //private final DcMotor intakeMotor;
+    private final DcMotor pollenMotor;
     private static final double INTAKE_MOTOR_SPEED = 1.0;
 
     public Intake(StandardSetupOpMode ssom){
 
         this.ssom = ssom;
-        //intakeMotor = ssom.hardwareMap.get(DcMotor.class,"intakeMotor"); //need to define channel
-        //intakeMotor.setDirection(DcMotor.Direction.FORWARD);
+        pollenMotor = ssom.hardwareMap.get(DcMotor.class,"PollenIntake"); //need to define channel
+        pollenMotor.setDirection(DcMotor.Direction.FORWARD);
 
     }
 
@@ -33,18 +33,26 @@ public class Intake extends RobotPart{
 
     }
 
+
     @Override
     public void loop() {
-        if(!ssom.ignoreGamepad){
-            //if (ssom.gamepad1.a)
-            //    intakeMotor.setPower(INTAKE_MOTOR_SPEED);
-            //else if(ssom.gamepad1.b)
-            //    intakeMotor.setPower(-INTAKE_MOTOR_SPEED);
-            //else
-            //    intakeMotor.setPower(0.0);
-        }
+        if (!ssom.ignoreGamepad)
+
+        {
+                pollenMotor.setPower(ssom.gamepad1.right_trigger);
+
+                }
+
+
+
+
 
     }
+
+
+
+
+
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
