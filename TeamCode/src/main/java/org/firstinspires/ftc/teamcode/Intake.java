@@ -15,7 +15,6 @@ public class Intake extends RobotPart{
         this.ssom = ssom;
         //intakeMotor = ssom.hardwareMap.get(DcMotor.class,"intakeMotor"); //need to define channel
         //intakeMotor.setDirection(DcMotor.Direction.FORWARD);
-
     }
 
     @Override

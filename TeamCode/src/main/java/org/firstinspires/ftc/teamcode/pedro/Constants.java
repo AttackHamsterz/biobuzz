@@ -134,15 +134,17 @@ public class Constants {
             c.headingDriveRatio.set(0.3);
             c.cosineScale.set(true);
 
-            c.maxAchievableForwardVelocity.set(77.54027009174605);
-            c.maxAchievableStrafeVelocity.set(77.54027009174605);
-            c.naturalForwardDeceleration.set(38.049105010661386);
-            c.naturalStrafeDeceleration.set(38.049105010661386);
-            c.maxDecelerationConstraint.set(38.049105010661386);
+            double driveScale = 2.0;
 
-            double lateralScale = 0.2;
-            Controller primaryTranslationalForward = Controller.proportional(0.2326085417794935);
-            Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558);
+            c.maxAchievableForwardVelocity.set(82.357);
+            c.maxAchievableStrafeVelocity.set(82.357);
+            c.naturalForwardDeceleration.set(52.0);
+            c.naturalStrafeDeceleration.set(52.0);
+            c.maxDecelerationConstraint.set(52.0);
+
+            double lateralScale = 0.18;
+            Controller primaryTranslationalForward = Controller.proportional(0.2326085417794935*driveScale);
+            Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558*driveScale);
             Controller primaryTranslationalLateral = Controller.proportional(0.2326085417794935*lateralScale);
             Controller secondaryTranslationalLateral = Controller.proportional(0.08594264077281558*lateralScale);
             c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward));
@@ -150,7 +152,7 @@ public class Constants {
             c.coast.set(Controller.proportionalFeedforward(0.011878192675601161));
             c.brake.set(Controller.proportionalFeedforward(0.010096463774260987));
 
-            double headingScale = 0.2;
+            double headingScale = 0.004;
             c.headingFeedback.set(Controller.proportional(10*headingScale));
             c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*headingScale, 0.07330594236272889*headingScale));
             c.linearBrakeCoefficients.set(Matrix.diag(0.094687708786002, 0.094687708786002));

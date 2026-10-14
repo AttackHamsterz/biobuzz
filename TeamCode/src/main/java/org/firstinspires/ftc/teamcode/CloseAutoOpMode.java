@@ -41,19 +41,19 @@ public class CloseAutoOpMode extends AutoOpMode {
         final double startPoseAngle = 90.0;
 
         final double firstScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
-        final double firstScorePoseY = 20.0;
+        final double firstScorePoseY = 30.0;
         final double firstScorePoseAngle = 90.0;
 
         final double secondScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
-        final double secondScorePoseY = 40.0;
+        final double secondScorePoseY = 60.0;
         final double secondScorePoseAngle = 90.0;
 
         final double thirdScorePoseX = (color == COLOR.RED) ? centerLineX-30.0 : centerLineX+30;
-        final double thirdScorePoseY = 40.0;
+        final double thirdScorePoseY = 60.0;
         final double thirdScorePoseAngle = 90.0;
 
         final double fourthScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
-        final double fourthScorePoseY = 40.0;
+        final double fourthScorePoseY = 50.0;
         final double fourthScorePoseAngle = 180.0;
 
         final double parkX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
