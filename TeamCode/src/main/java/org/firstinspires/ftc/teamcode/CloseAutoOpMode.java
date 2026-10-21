@@ -25,89 +25,98 @@ public class CloseAutoOpMode extends AutoOpMode {
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
 
-    private Pose startPose;
-    private Pose firstScorePose;
-    private Pose secondScorePose;
-    private Pose thirdScorePose;
+    private Pose centerStartPose;
+    private Pose blockPose;
+    private Pose closeFlowerPose;
+    private Pose farFlowerPose;
     private Pose fourthScorePose;
+    //fourth score pose doesnt have a use yet btw
     private Pose parkPose;
+    private double flowerOffset = 1;
+    private long stepFilter = 0;
+    //1 = block pose
+
+
 
     // Red is on the left side when facing from the audience and contains 0,0
     // Blue is on the right side when facing from the audience and contains (144, 144)
     @Override public void init() {
         final double centerLineX = 72.0;
-        final double startPoseX = (color == COLOR.RED) ? centerLineX-10 : centerLineX+10;
-        final double startPoseY = 9.0;
-        final double startPoseAngle = 90.0;
+        final double centerStartPoseX = 62.0;
+        final double centerStartPoseY = 9.0;
+        final double centerStartPoseAngle = 90.0;
 
-        final double firstScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
-        final double firstScorePoseY = 30.0;
-        final double firstScorePoseAngle = 90.0;
+        final double blockPoseX = 62.0;
+        final double blockPoseY = 27.0;
+        final double blockPoseAngle = 110.0;
 
-        final double secondScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
-        final double secondScorePoseY = 60.0;
-        final double secondScorePoseAngle = 90.0;
+        final double closeFlowerPoseX = 18.0;
+        final double closeFlowerPoseY = 47.0+flowerOffset;
+        final double closeFlowerPoseAngle = 270.0;
 
-        final double thirdScorePoseX = (color == COLOR.RED) ? centerLineX-30.0 : centerLineX+30;
-        final double thirdScorePoseY = 60.0;
-        final double thirdScorePoseAngle = 90.0;
+        final double farFlowerPoseX = 48.5+flowerOffset;
+        final double farFlowerPoseY = 126.0;
+        final double farFlowerPoseAngle = 180.0;
 
         final double fourthScorePoseX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
         final double fourthScorePoseY = 50.0;
         final double fourthScorePoseAngle = 180.0;
 
-        final double parkX = (color == COLOR.RED) ? centerLineX-10.0 : centerLineX+10;
-        final double parkY = 20.0;
-        final double parkAngle =  90.0;
+        final double parkX = 15;
+        final double parkY = 94.0;
+        final double parkAngle =  270.0;
 
-        startPose = poseFactory.of(startPoseX, startPoseY, startPoseAngle);
-        firstScorePose = poseFactory.of(firstScorePoseX, firstScorePoseY, firstScorePoseAngle);
-        secondScorePose = poseFactory.of(secondScorePoseX, secondScorePoseY, secondScorePoseAngle);
-        thirdScorePose = poseFactory.of(thirdScorePoseX, thirdScorePoseY, thirdScorePoseAngle);
+        centerStartPose = poseFactory.of(centerStartPoseX, centerStartPoseY, centerStartPoseAngle);
+        blockPose = poseFactory.of(blockPoseX, blockPoseY, blockPoseAngle);
+        closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
+        farFlowerPose = poseFactory.of(farFlowerPoseX, farFlowerPoseY, farFlowerPoseAngle);
         fourthScorePose = poseFactory.of(fourthScorePoseX, fourthScorePoseY, fourthScorePoseAngle);
         parkPose = poseFactory.of(parkX, parkY, parkAngle);
 
         super.init();
-        motion.follower.setPose(startPose);
+        motion.follower.setPose(centerStartPose);
     }
 
     // Each path starts at the previous fixed pose (not the live pose),
     // so every run drives the same route
 
-    private Path firstScore() {
-        return line(startPose, firstScorePose).linear(startPose, firstScorePose);
+    private Path centerStartToBlock() {
+        return line(centerStartPose, blockPose).linear(centerStartPose, blockPose);
     }
-
-    private Path secondScore() {
-        return line(firstScorePose, secondScorePose).linear(firstScorePose, secondScorePose);
+    private Path blockToCloseFlower() {
+        return line(blockPose, closeFlowerPose).linear(blockPose, closeFlowerPose);
     }
-
-    private Path thirdScore() {
-        return line(secondScorePose, thirdScorePose).linear(secondScorePose, thirdScorePose);
+    private Path closeFlowerToBlock() {
+        return line(closeFlowerPose, blockPose).linear(closeFlowerPose, blockPose);
     }
-
-    private Path fourthScore() {
-        return line(thirdScorePose, fourthScorePose).linear(thirdScorePose, fourthScorePose);
+    private Path closeFlowerToFarFlower() {
+        return line(closeFlowerPose, farFlowerPose).linear(closeFlowerPose, farFlowerPose);
     }
-
-    private Path park() {
-        return line(fourthScorePose, parkPose).linear(fourthScorePose, parkPose);
+    private Path farFlowerToCloseFlower() {
+        return line(farFlowerPose, closeFlowerPose).linear(farFlowerPose, closeFlowerPose);
+    }
+    private Path closeFlowerToPark() {
+        return line(closeFlowerPose, parkPose).linear(closeFlowerPose, parkPose);
+    }
+    private Path farFlowerToPark() {
+        return line(farFlowerPose, parkPose).linear(farFlowerPose, parkPose);
     }
 
     Command startIntake = instant(() -> intake.setPower(1.0));
     Command stopIntake = instant(() -> intake.setPower(0.0));
     Command zeroSwerve = instant(() -> ((HamFollower)motion.follower).zero());
 
+
     @Override
     public void buildSchedule() {
         schedule(sequential(
-                parallel(follow(motion.follower, firstScore()),
+                parallel(follow(motion.follower, centerStartToBlock()),
                     startIntake),
-                parallel(follow(motion.follower, secondScore()),
+                parallel(follow(motion.follower, blockToCloseFlower()),
                     stopIntake),
-                follow(motion.follower, thirdScore()),
-                follow(motion.follower, fourthScore()),
-                follow(motion.follower, park()),
+                follow(motion.follower, closeFlowerToFarFlower()),
+                follow(motion.follower, farFlowerToCloseFlower()),
+                follow(motion.follower, farFlowerToPark()),
                 race(repeat(zeroSwerve, 1000),
                     waitMs(2000))
         ));
