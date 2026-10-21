@@ -83,14 +83,13 @@ public class Eye extends RobotPart {
             return;
         }
 
-        if (mode == Mode.LOCATE_POLLEN) {
+        if (mode == Mode.FIND_HIVE) {
             resultInUse = limelight.getLatestResult();
             if (resultInUse != null) {
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
                     for(LLResultTypes.FiducialResult fiducial : fiducials) {
                         // See which fiducial it is
-
                         if (ssom.color == StandardSetupOpMode.COLOR.BLUE && blueFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Blue mode and see a blue fiducial
                         } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
@@ -100,7 +99,7 @@ public class Eye extends RobotPart {
                 }
             }
         }
-        if (mode == Mode.FIND_HIVE) {
+        if (mode == Mode.LOCATE_POLLEN) {
 
         }
         // Cleanup
