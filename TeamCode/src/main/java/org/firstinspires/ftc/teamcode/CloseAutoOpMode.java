@@ -95,6 +95,12 @@ public class CloseAutoOpMode extends AutoOpMode {
     private Path farFlowerToCloseFlower() {
         return line(farFlowerPose, closeFlowerPose).linear(farFlowerPose, closeFlowerPose);
     }
+    private Path blockToFarFLower() {
+        return line(blockPose, farFlowerPose).linear(blockPose,farFlowerPose);
+    }
+    private Path farFLowerToBlock() {
+        return line(farFlowerPose, blockPose).linear(farFlowerPose,blockPose);
+    }
     private Path closeFlowerToPark() {
         return line(closeFlowerPose, parkPose).linear(closeFlowerPose, parkPose);
     }
