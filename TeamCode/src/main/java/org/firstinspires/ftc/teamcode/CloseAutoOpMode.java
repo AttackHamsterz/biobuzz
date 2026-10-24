@@ -110,12 +110,17 @@ public class CloseAutoOpMode extends AutoOpMode {
     @Override
     public void buildSchedule() {
         schedule(sequential(
+                //shoot 4 preloaded pollen
                 parallel(follow(motion.follower, centerStartToBlock()),
                     startIntake),
+                //wait for hive to tip, either timer or fiducial reading, and wait 2 secs to block
                 parallel(follow(motion.follower, blockToCloseFlower()),
                     stopIntake),
+                //intake from close flower
                 follow(motion.follower, closeFlowerToFarFlower()),
-                follow(motion.follower, farFlowerToCloseFlower()),
+                //shoot from the far flower
+                //intake from far flower
+                //shoot from the far flower
                 follow(motion.follower, farFlowerToPark()),
                 race(repeat(zeroSwerve, 1000),
                     waitMs(2000))
