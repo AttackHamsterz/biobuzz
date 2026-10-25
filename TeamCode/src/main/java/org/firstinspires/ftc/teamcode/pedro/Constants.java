@@ -147,18 +147,36 @@ public class Constants {
             Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558*driveScale);
             Controller primaryTranslationalLateral = Controller.proportional(0.2326085417794935*lateralScale);
             Controller secondaryTranslationalLateral = Controller.proportional(0.08594264077281558*lateralScale);
-            c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward));
-            c.strafeTranslational.set(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral));
+            // Largest power each path-correction axis may ask for (1.0 = no cap). Foresight gives
+            // correction priority over driving, so an uncapped correction can take all the power.
+            double correctionCap = 1.0;
+            c.forwardTranslational.set(capped(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward), correctionCap));
+            c.strafeTranslational.set(capped(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral), correctionCap));
             c.coast.set(Controller.proportionalFeedforward(0.011878192675601161));
             c.brake.set(Controller.proportionalFeedforward(0.010096463774260987));
 
-            double headingScale = 0.004;
-            c.headingFeedback.set(Controller.proportional(10*headingScale));
-            c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*headingScale, 0.07330594236272889*headingScale));
+            double headingGainScale = 0.004;
+            double headingBrakeScale = 0.004;
+            c.headingFeedback.set(Controller.proportional(10*headingGainScale));
+            c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*headingBrakeScale, 0.07330594236272889*headingBrakeScale));
             c.linearBrakeCoefficients.set(Matrix.diag(0.094687708786002, 0.094687708786002));
             c.quadraticBrakeCoefficients.set(Matrix.diag(0.012229758832106856, 0.012229758832106856));
         }
     );
+
+    private static Controller capped(Controller inner, double cap) {
+        return new Controller() {
+            @Override
+            public double calculate(double target, double error) {
+                return Math.max(-cap, Math.min(cap, inner.calculate(target, error)));
+            }
+
+            @Override
+            public void reset() {
+                inner.reset();
+            }
+        };
+    }
 
     public static Follower create(HardwareMap hardwareMap) {
         GearedCoaxialPod frontLeftPod = new GearedCoaxialPod(hardwareMap, frontLeft);
