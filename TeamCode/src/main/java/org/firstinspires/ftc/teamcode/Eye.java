@@ -75,6 +75,13 @@ public class Eye extends RobotPart {
     }
 
     @Override
+    public void start() {
+        // This tells Limelight to start looking!
+        limelight.pipelineSwitch(0);
+        limelight.start();
+    }
+
+    @Override
     public void loop() {
         // Sanity
         if (limelight == null) {
@@ -106,12 +113,6 @@ public class Eye extends RobotPart {
         //limelight.stop();
     }
 
-    @Override
-    public void start() {
-        // This tells Limelight to start looking!
-        limelight.pipelineSwitch(0);
-        limelight.start();
-    }
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
