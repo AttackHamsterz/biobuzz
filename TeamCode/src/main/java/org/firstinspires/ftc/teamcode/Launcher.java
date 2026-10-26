@@ -33,11 +33,22 @@ public class Launcher extends RobotPart{
     private double interimVelocityRPM;           // Slewed value actually sent to motor
     private double currentVelocityRPM;
     private boolean isLaunchable;
+    private TargetMode target;
+
 
     private ArrayList<RPMEntry> distanceRPM;
     private ArrayList<RPMEntry> velocityRPM;
 
+    public enum TargetMode {
+        HIVE(0),    // Shoot at the hive
+        FLOWER(1),       // Shoot at the flower
+        NONE(3);            // No mode, do nothing
 
+        private final int value;
+        TargetMode(int value){
+            this.value = value;
+        }
+    }
     private class RPMEntry{
         public double value;
         public double rpm;
@@ -52,6 +63,7 @@ public class Launcher extends RobotPart{
 
     public Launcher(StandardSetupOpMode ssom){
         this.ssom = ssom;
+        target = TargetMode.HIVE;
         launchMotor = ssom.hardwareMap.get(DcMotorEx.class, "launchMotor");
 
         //Default to launchable until distance is outside the range.
@@ -81,6 +93,7 @@ public class Launcher extends RobotPart{
         // Table of distances in meters to RPM
         distanceRPM = new ArrayList<>(List.of(
                 new RPMEntry(0.0, 0.0),
+                new RPMEntry(0.25, 1500.0),
                 new RPMEntry(0.5, 2400.0),
                 new RPMEntry(1.0, 2450.0),
                 new RPMEntry(1.25, 2600.0),
@@ -93,6 +106,10 @@ public class Launcher extends RobotPart{
         ));
     }
 
+    public void setTargetMode(TargetMode targetMode){
+        target = targetMode;
+    }
+
     public void setRPMFromDistance(double distance, double extraRPM){
         setRPMFromDistance(distance, extraRPM, 0);
     }
@@ -101,7 +118,7 @@ public class Launcher extends RobotPart{
         double rpm = 0;
         double vxrpm = 0;
 
-        if (distance <= MIN_THRESHOLD_DISTANCE || distance >= MAX_THRESHOLD_DISTANCE) {
+        if (target == TargetMode.HIVE && (distance <= MIN_THRESHOLD_DISTANCE || distance >= MAX_THRESHOLD_DISTANCE)) {
             isLaunchable = false;
         } else {
 
@@ -181,6 +198,7 @@ public class Launcher extends RobotPart{
             telemetry.addData("launchInterimVelocityRPM", interimVelocityRPM);
             telemetry.addData("launchCurrentVelocityRPM", currentVelocityRPM);
             telemetry.addData("Launchablility", isLaunchable ? "ITS A GO GO TIME" : "Please do not launch :(");
+            telemetry.addData("LaunchMode",target);
         }
     }
 }
