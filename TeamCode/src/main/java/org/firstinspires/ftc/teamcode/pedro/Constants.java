@@ -115,10 +115,12 @@ public class Constants {
             c -> {
                 c.name.set("pinpoint");
                 c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-                c.xPodOffset.set(4.170056140328955);
-                c.yPodOffset.set(2.2461595310000924);
+                // Tape check 2026-10-25, in the code's frame (its front may be the end the team
+                // calls the back). Not yet verified with a spin test.
+                c.xPodOffset.set(-4.0);
+                c.yPodOffset.set(7.0);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
                 c.globalDistanceUnit.set(DistanceUnit.INCH);
                 c.offsetUnits.set(DistanceUnit.INCH);
             }
