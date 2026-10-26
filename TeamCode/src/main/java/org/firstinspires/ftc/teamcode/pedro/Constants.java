@@ -20,6 +20,11 @@ public class Constants {
 
     public static final double TESTING_POWER_LIMIT = 1.0;
 
+    // Smallest drive power that actually moves the robot (static friction). Real drive commands
+    // are lifted to at least this so a nearly-finished correction can't stall. 0 = off.
+    // Measured breakaway was about 0.1 in Swerve Calibration; 0.08 is 80% of that.
+    public static final double STATIC_DRIVE_POWER = 0.08;
+
     public static final double FRONT_LEFT_ZERO = 2.466;
     public static final double FRONT_LEFT_MIN = 0.013;
     public static final double FRONT_LEFT_MAX = 3.225;
