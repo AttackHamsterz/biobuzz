@@ -36,6 +36,14 @@ public class CloseAutoOpMode extends AutoOpMode {
     private long stepFilter = 0;
     //1 = block pose
 
+    // Set bit positions to enable disable outputs
+    //    1 - startPose
+    //    2 - firstBlockPose
+    //    4 - secondBlockPose
+    //    8 - gardenPose
+    //   16 - closeFlowerPose
+    //   32 - farFlowerPose
+    //   64 -parkPose
 
 
     // Red is on the left side when facing from the audience and contains 0,0
