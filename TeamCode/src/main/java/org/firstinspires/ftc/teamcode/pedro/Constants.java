@@ -20,6 +20,11 @@ public class Constants {
 
     public static final double TESTING_POWER_LIMIT = 1.0;
 
+    // Smallest drive power that actually moves the robot (static friction). Real drive commands
+    // are lifted to at least this so a nearly-finished correction can't stall. 0 = off.
+    // Measured breakaway was about 0.1 in Swerve Calibration; 0.08 is 80% of that.
+    public static final double STATIC_DRIVE_POWER = 0.08;
+
     public static final double FRONT_LEFT_ZERO = 2.466;
     public static final double FRONT_LEFT_MIN = 0.013;
     public static final double FRONT_LEFT_MAX = 3.225;
@@ -110,10 +115,12 @@ public class Constants {
             c -> {
                 c.name.set("pinpoint");
                 c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-                c.xPodOffset.set(4.170056140328955);
-                c.yPodOffset.set(2.2461595310000924);
+                // Tape check 2026-10-25, in the code's frame (its front may be the end the team
+                // calls the back). Not yet verified with a spin test.
+                c.xPodOffset.set(-4.0);
+                c.yPodOffset.set(7.0);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
                 c.globalDistanceUnit.set(DistanceUnit.INCH);
                 c.offsetUnits.set(DistanceUnit.INCH);
             }
@@ -147,18 +154,36 @@ public class Constants {
             Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558*driveScale);
             Controller primaryTranslationalLateral = Controller.proportional(0.2326085417794935*lateralScale);
             Controller secondaryTranslationalLateral = Controller.proportional(0.08594264077281558*lateralScale);
-            c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward));
-            c.strafeTranslational.set(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral));
+            // Largest power each path-correction axis may ask for (1.0 = no cap). Foresight gives
+            // correction priority over driving, so an uncapped correction can take all the power.
+            double correctionCap = 1.0;
+            c.forwardTranslational.set(capped(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward), correctionCap));
+            c.strafeTranslational.set(capped(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral), correctionCap));
             c.coast.set(Controller.proportionalFeedforward(0.011878192675601161));
             c.brake.set(Controller.proportionalFeedforward(0.010096463774260987));
 
-            double headingScale = 0.004;
-            c.headingFeedback.set(Controller.proportional(10*headingScale));
-            c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*headingScale, 0.07330594236272889*headingScale));
+            double headingGainScale = 0.004;
+            double headingBrakeScale = 0.004;
+            c.headingFeedback.set(Controller.proportional(10*headingGainScale));
+            c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*headingBrakeScale, 0.07330594236272889*headingBrakeScale));
             c.linearBrakeCoefficients.set(Matrix.diag(0.094687708786002, 0.094687708786002));
             c.quadraticBrakeCoefficients.set(Matrix.diag(0.012229758832106856, 0.012229758832106856));
         }
     );
+
+    private static Controller capped(Controller inner, double cap) {
+        return new Controller() {
+            @Override
+            public double calculate(double target, double error) {
+                return Math.max(-cap, Math.min(cap, inner.calculate(target, error)));
+            }
+
+            @Override
+            public void reset() {
+                inner.reset();
+            }
+        };
+    }
 
     public static Follower create(HardwareMap hardwareMap) {
         GearedCoaxialPod frontLeftPod = new GearedCoaxialPod(hardwareMap, frontLeft);
