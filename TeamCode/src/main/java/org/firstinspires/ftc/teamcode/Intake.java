@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -13,8 +14,8 @@ public class Intake extends RobotPart{
     public Intake(StandardSetupOpMode ssom){
 
         this.ssom = ssom;
-        //pollenMotor = ssom.hardwareMap.get(DcMotor.class,"PollenIntake"); //need to define channel
-        //pollenMotor.setDirection(DcMotor.Direction.FORWARD);
+        pollenMotor = ssom.hardwareMap.get(DcMotor.class,"pollenIntake"); //need to define channel
+        pollenMotor.setDirection(DcMotor.Direction.REVERSE);
 
     }
 
@@ -36,7 +37,7 @@ public class Intake extends RobotPart{
     @Override
     public void loop() {
         if(!ssom.ignoreGamepad){
-            //pollenMotor.setPower(ssom.gamepad1.right_trigger);
+            pollenMotor.setPower(ssom.gamepad1.right_trigger);
         }
     }
 
