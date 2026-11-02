@@ -10,6 +10,7 @@ import com.pedropathing.tuning.autotune.Procedure;
 import com.pedropathing.tuning.autotune.TuningOpMode;
 import com.pedropathing.utils.Angle;
 import com.pedropathing.utils.Utils;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -29,6 +30,46 @@ public class ForesightSwerveTuner extends Procedure {
         super("Foresight Swerve Tuner", "A procedure for tuning the Foresight Algorithm for swerve.");
         this.localizerFunction = localizerFunction;
         this.drivetrainFunction = drivetrainFunction;
+    }
+
+    /**
+     * Command strength used while pre-aiming the pods. It has to satisfy two thresholds at once:
+     *  - above HamSwerve's epsilon (0.0175). Below that, HamSwerve treats the command as zero and
+     *    tells the pods to ignore angle changes, so they would not steer.
+     *  - below GearedCoaxialPod's motor caching threshold (0.05). A pod only sends a new drive
+     *    power when it differs from the last one by more than that, so the drive motors stay at
+     *    exactly 0 and the robot does not creep.
+     */
+    static final double AIM_POWER = 0.03;
+    /** How long to let the pods steer before measuring. Increase this if pods are still turning when the run starts. */
+    static final double AIM_SECONDS = 1.0;
+    /** Safety limit for the loops that wait on a speed or distance the robot might never reach. */
+    static final double MAX_LOOP_SECONDS = 5.0;
+
+    /**
+     * Steers every pod toward the direction a tuner is about to drive, without moving the robot,
+     * then re-zeroes the localizer.
+     *
+     * Why: the system-ID tuners fit a curve to the robot's response starting at t = 0. Swerve
+     * pods take time to rotate, so a run that starts with the pods pointing the wrong way measures
+     * "steering, then driving" instead of the drive response. Results then depend on where the
+     * previous tuner left the pods. With the pods aimed first, every run starts the same way.
+     *
+     * @param direction unit-style direction of the upcoming test, e.g. (1, 0, 0) forward or (0, 0, 1) turn
+     */
+    static void aimPods(LinearOpMode opMode, Drivetrain drivetrain, Localizer localizer, DrivePowers direction) {
+        DrivePowers aim = new DrivePowers(
+                direction.forward() * AIM_POWER,
+                direction.strafe() * AIM_POWER,
+                direction.turn() * AIM_POWER);
+        ElapsedTime aimTimer = new ElapsedTime();
+        // drive() has to be called every loop: steering only updates inside GearedCoaxialPod.move(),
+        // and the steering servos are continuous-rotation, so a single call would leave them spinning.
+        while (aimTimer.seconds() < AIM_SECONDS && !opMode.isStopRequested()) {
+            drivetrain.drive(aim, false);
+        }
+        localizer.setPose(Pose.zero());
+        localizer.update();
     }
 
     @Override
@@ -84,6 +125,11 @@ public class ForesightSwerveTuner extends Procedure {
                     result("strafeTranslational Secondary kP", forwardTranslationalSecondary);
                     result("coast kV", coast);
                     result("brake kV", brake);
+                    // Fit diagnostics: compare these across repeated runs. K should repeat closely,
+                    // and a low point count means the fit had little data to work with.
+                    result("fit K (in/s per unit power)", forwardTranslational.get(4));
+                    result("fit tau (s)", forwardTranslational.get(5));
+                    result("fit points used", forwardTranslational.get(6).intValue());
 
                     code(Language.JAVA,
                                     "                Controller primaryTranslationalForward = Controller.proportional(" + forwardTranslationalPrimary + ");\n" +
@@ -96,8 +142,12 @@ public class ForesightSwerveTuner extends Procedure {
                                     "                c.brake.set(Controller.proportionalFeedforward(" + brake + "));\n");
                     break;
                 case 3:
-                    double heading = runOpMode(new HeadingTuner(localizerFunction, drivetrainFunction));
+                    List<Double> headingFit = runOpMode(new HeadingTuner(localizerFunction, drivetrainFunction));
+                    double heading = headingFit.get(0);
                     result("heading kP", heading);
+                    result("fit K (rad/s per unit power)", headingFit.get(1));
+                    result("fit tau (s)", headingFit.get(2));
+                    result("fit points used", headingFit.get(3).intValue());
 
                     code(Language.JAVA,
                                     "                c.headingFeedback.set(Controller.proportional(" + heading + "));\n");
@@ -167,9 +217,18 @@ class ForwardVelocity extends TuningOpMode<Double> {
         }
 
         waitForStart();
+        ForesightSwerveTuner.aimPods(this, drivetrain, localizer, new DrivePowers(1, 0, 0));
 
-        while (!end) {
+        // Stop button and timeout: if the robot never reaches the target distance (wheel slip,
+        // hitting a wall), this loop used to run, with full power, until the robot was turned off.
+        ElapsedTime safetyTimer = new ElapsedTime();
+        while (!end && !isStopRequested()) {
             localizer.update();
+            if (safetyTimer.seconds() > ForesightSwerveTuner.MAX_LOOP_SECONDS) {
+                drivetrain.stop();
+                throw new IllegalStateException("Max velocity: did not reach " + distance + " in within "
+                        + ForesightSwerveTuner.MAX_LOOP_SECONDS + " s. Check for slip or obstructions.");
+            }
             if (Math.abs(localizer.pose().x()) > distance) {
                 end = true;
                 drivetrain.stop();
@@ -221,10 +280,12 @@ class ForwardDeceleration extends TuningOpMode<Double> {
 
         DrivePowers power = new DrivePowers(1, 0, 0);
         waitForStart();
+        ForesightSwerveTuner.aimPods(this, drivetrain, localizer, power);
 
         drivetrain.drive(power, false);
 
-        while (!stopping) {
+        ElapsedTime safetyTimer = new ElapsedTime();
+        while (!stopping && !isStopRequested()) {
             localizer.update();
             double currentVelocity = localizer.twist().toVector2D().x();
             if (currentVelocity > velocity) {
@@ -233,12 +294,27 @@ class ForwardDeceleration extends TuningOpMode<Double> {
 
                 stopping = true;
                 drivetrain.stop(false);
+            } else if (safetyTimer.seconds() > ForesightSwerveTuner.MAX_LOOP_SECONDS) {
+                drivetrain.stop(false);
+                throw new IllegalStateException("Deceleration: never reached " + velocity + " in/s within "
+                        + ForesightSwerveTuner.MAX_LOOP_SECONDS + " s.");
+            } else {
+                // Keep calling drive() every loop. Before this fix, drive() ran once, before the
+                // loop. Steering only updates inside GearedCoaxialPod.move(), and the steering servos
+                // are continuous-rotation, so any pod that started more than 2 degrees off kept
+                // spinning at its first command for the whole run.
+                drivetrain.drive(power, false);
             }
         }
 
         boolean end = false;
 
-        while (!end) {
+        safetyTimer.reset();
+        while (!end && !isStopRequested()) {
+            if (safetyTimer.seconds() > ForesightSwerveTuner.MAX_LOOP_SECONDS) {
+                throw new IllegalStateException("Deceleration: robot did not coast to a stop within "
+                        + ForesightSwerveTuner.MAX_LOOP_SECONDS + " s.");
+            }
             localizer.update();
             double currentVelocity = localizer.twist().toVector2D().x();
             long currentTimeNano = System.nanoTime();
@@ -290,6 +366,7 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
     private double K;
     private double kV;
     private double kA;
+    private int fitPoints;
     private double vMax = 0;
     private final List<Double> times = new ArrayList<>();
     private final List<Double> velocities = new ArrayList<>();
@@ -318,6 +395,9 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
         lastTime = 0.0;
 
         waitForStart();
+        // Aim the pods first. This fit treats t = 0 as the moment the robot starts accelerating;
+        // a pod that is still rotating at t = 0 adds steering time the model doesn't account for.
+        ForesightSwerveTuner.aimPods(this, drivetrain, localizer, new DrivePowers(1, 0, 0));
         timer.reset();
         lastTime = timer.seconds();
         drivetrain.drive(new DrivePowers(POWER, 0.0, 0.0), false);
@@ -340,8 +420,14 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
 
                 if (timer.seconds() >= RUNTIME) {
                     done = true;
-                    systemIdentification();
+                    // Stop before fitting: systemIdentification() can throw, and the robot
+                    // shouldn't keep driving if it does.
                     drivetrain.drive(new DrivePowers(0.0, 0.0, 0.0), false);
+                    systemIdentification();
+                } else {
+                    // Same fix as in ForwardDeceleration: drive() every loop so the pods keep
+                    // steering. Before this fix, it was called only once, before the loop.
+                    drivetrain.drive(new DrivePowers(POWER, 0.0, 0.0), false);
                 }
             }
         }
@@ -351,8 +437,9 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
         double kP_large = calculatekP(ALPHA_LARGE);
         double kP_small = calculatekP(ALPHA_SMALL);
 
-        //  kP_large, kP_small, coast kV, and brake kV (scaled by aggressiveness factor)
-        return List.of(kP_large, kP_small, kV, kV * VEL_AGGRESSIVENESS);
+        //  kP_large, kP_small, coast kV, brake kV (scaled by aggressiveness factor),
+        //  then fit diagnostics: K, tau, and how many samples the curve fit used.
+        return List.of(kP_large, kP_small, kV, kV * VEL_AGGRESSIVENESS, K, tau, (double) fitPoints);
     }
 
     private double calculatekP(double alpha) {
@@ -383,6 +470,14 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
             y.add(Math.log(K - vel));
             x.add(times.get(i));
         }
+        // The N < 4 check above counts every sample, but only samples between 10% and 80% of
+        // final speed reach the fit. If the robot got up to speed faster than the loop could
+        // sample, too few remain and the fit returns garbage (NaN or a wild tau) instead of failing.
+        fitPoints = x.size();
+        if (fitPoints < 3) {
+            throw new IllegalArgumentException("Failed calibration: only " + fitPoints
+                    + " samples between 10% and 80% of final speed. Re-run; if it repeats, the robot reaches speed too fast to sample.");
+        }
         double[] linReg = linearFit(
                 x.toArray(new Double[0]),
                 y.toArray(new Double[0])
@@ -392,7 +487,7 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
     }
 }
 
-class HeadingTuner extends TuningOpMode<Double> {
+class HeadingTuner extends TuningOpMode<List<Double>> {
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
 
@@ -403,6 +498,7 @@ class HeadingTuner extends TuningOpMode<Double> {
 
     private double tau;
     private double K;
+    private int fitPoints;
     private final List<Double> times = new ArrayList<>();
     private final List<Double> velocities = new ArrayList<>();
     private final ElapsedTime timer = new ElapsedTime();
@@ -414,7 +510,7 @@ class HeadingTuner extends TuningOpMode<Double> {
     }
 
     @Override
-    protected Double runTuningOpMode() {
+    protected List<Double> runTuningOpMode() {
         Localizer localizer = localizerFunction.apply(hardwareMap);
         Drivetrain drivetrain = drivetrainFunction.apply(hardwareMap);
 
@@ -428,6 +524,10 @@ class HeadingTuner extends TuningOpMode<Double> {
         double lastTime = 0.0;
 
         waitForStart();
+        // Aim the pods into the turning position (each pod at 45 degrees). Turning in place
+        // needs the largest steering move of any tuner, so without this the first part of the
+        // fit window measured the pods rotating, not the robot.
+        ForesightSwerveTuner.aimPods(this, drivetrain, localizer, new DrivePowers(0.0, 0.0, 1.0));
         timer.reset();
         lastTime = timer.seconds();
         drivetrain.drive(new DrivePowers(0.0, 0.0, POWER), false);
@@ -449,15 +549,17 @@ class HeadingTuner extends TuningOpMode<Double> {
 
             if (timer.seconds() >= RUNTIME) {
                 done = true;
-                systemIdentification();
+                // Stop before fitting, so a failed fit doesn't leave the robot spinning.
                 drivetrain.drive(new DrivePowers(0.0, 0.0, 0.0), false);
+                systemIdentification();
             }
             else
                 drivetrain.drive(new DrivePowers(0.0, 0.0, POWER), false);
         }
 
         drivetrain.drive(new DrivePowers(0.0, 0.0, 0.0), true);
-        return calculatekP(ALPHA);
+        // heading kP, then fit diagnostics: K, tau, and how many samples the curve fit used.
+        return List.of(calculatekP(ALPHA), K, tau, (double) fitPoints);
     }
 
     private double calculatekP(double alpha) {
@@ -487,6 +589,14 @@ class HeadingTuner extends TuningOpMode<Double> {
             if (vel < 0.1 * K) continue;
             y.add(Math.log(K - vel));
             x.add(times.get(i));
+        }
+        // The N < 4 check above counts every sample, but only samples between 10% and 80% of
+        // final speed reach the fit. If the robot got up to speed faster than the loop could
+        // sample, too few remain and the fit returns garbage (NaN or a wild tau) instead of failing.
+        fitPoints = x.size();
+        if (fitPoints < 3) {
+            throw new IllegalArgumentException("Failed calibration: only " + fitPoints
+                    + " samples between 10% and 80% of final speed. Re-run; if it repeats, the robot reaches speed too fast to sample.");
         }
         double[] linReg = linearFit(
                 x.toArray(new Double[0]),
@@ -540,6 +650,8 @@ class HeadingBraking extends TuningOpMode<List<Double>> {
         int iteration = 0;
 
         waitForStart();
+        // Originally a workaround for the pods' delayed init(). Tuning.settledSwerve() now waits
+        // for that before the drivetrain reaches any tuner, so this pause is redundant but harmless.
         try {
             Thread.sleep(1500);
         } catch (InterruptedException e) {
@@ -678,6 +790,8 @@ class ForwardBraking extends TuningOpMode<List<Double>> {
         List<Double> coefficients = Collections.emptyList();
 
         waitForStart();
+        // Originally a workaround for the pods' delayed init(). Tuning.settledSwerve() now waits
+        // for that before the drivetrain reaches any tuner, so this pause is redundant but harmless.
         try {
             Thread.sleep(1500);
         } catch (InterruptedException e) {
