@@ -153,14 +153,14 @@ public class Constants {
             c.naturalStrafeDeceleration.set(52.0);
             c.maxDecelerationConstraint.set(52.0);
 
-            double lateralScale = 0.18;
+            double lateralScale = 1.0; // was 0.18 while the strafe pod read backward (fixed 2026-11-01)
             Controller primaryTranslationalForward = Controller.proportional(0.2326085417794935*driveScale);
             Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558*driveScale);
             Controller primaryTranslationalLateral = Controller.proportional(0.2326085417794935*lateralScale);
             Controller secondaryTranslationalLateral = Controller.proportional(0.08594264077281558*lateralScale);
             // Largest power each path-correction axis may ask for (1.0 = no cap). Foresight gives
             // correction priority over driving, so an uncapped correction can take all the power.
-            double correctionCap = 1.0;
+            double correctionCap = 0.5;
             c.forwardTranslational.set(capped(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward), correctionCap));
             c.strafeTranslational.set(capped(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral), correctionCap));
             c.coast.set(Controller.proportionalFeedforward(0.011878192675601161));
