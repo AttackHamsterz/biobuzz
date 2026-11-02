@@ -115,12 +115,16 @@ public class Constants {
             c -> {
                 c.name.set("pinpoint");
                 c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-                // Tape check 2026-10-25, in the code's frame (its front may be the end the team
-                // calls the back). Not yet verified with a spin test.
-                c.xPodOffset.set(-4.0);
-                c.yPodOffset.set(7.0);
+                // Measured 2026-11-01. Both pods are at the back: the forward pod is 3.875" right
+                // of center, the strafe pod 8.233" behind. Pinpoint wants left and forward as
+                // positive, so both are negative. Stick-up drives away from the pods, confirming
+                // the code's front is the team's front. Spin test passed (within ~1.6" at 180 deg).
+                c.xPodOffset.set(-3.875);
+                c.yPodOffset.set(-8.233);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+                // REVERSED 2026-11-01: strafing right raised y (Pedro's +y is left), and a 180 deg spin
+                // was off by 2 x 16.5", both of which match a backward strafe pod.
+                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
                 c.globalDistanceUnit.set(DistanceUnit.INCH);
                 c.offsetUnits.set(DistanceUnit.INCH);
             }
