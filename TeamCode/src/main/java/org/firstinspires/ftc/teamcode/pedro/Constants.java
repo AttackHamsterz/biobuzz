@@ -22,8 +22,9 @@ public class Constants {
 
     // Smallest drive power that actually moves the robot (static friction). Real drive commands
     // are lifted to at least this so a nearly-finished correction can't stall. 0 = off.
-    // Measured breakaway was about 0.1 in Swerve Calibration; 0.08 is 80% of that.
-    public static final double STATIC_DRIVE_POWER = 0.08;
+    // Measured breakaway was about 0.1 in Swerve Calibration; 0.08 (80% of that) was the old value.
+    // Turned off 2026-11-01 to rule it out while debugging localization and spin drift.
+    public static final double STATIC_DRIVE_POWER = 0.0;
 
     public static final double FRONT_LEFT_ZERO = 2.466;
     public static final double FRONT_LEFT_MIN = 0.013;
