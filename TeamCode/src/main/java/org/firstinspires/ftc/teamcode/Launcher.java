@@ -15,6 +15,8 @@ public class Launcher extends RobotPart{
     private static final double MIN_LAUNCH_VALUE_RPM = 2100;
     private static final double TPS_TO_RPM = 60.0 / TPR;
     private static final double RPM_TO_TPS = TPR / 60.0;
+    private double MIN_THRESHOLD_DISTANCE = 0.5;
+    private double MAX_THRESHOLD_DISTANCE = 2.75;
 
     private static final double kP = 40.0;//50.0;
     private static final double kI = 0.5;//1.0;
@@ -30,11 +32,23 @@ public class Launcher extends RobotPart{
     private volatile double targetVelocityRPM;  // What callers request
     private double interimVelocityRPM;           // Slewed value actually sent to motor
     private double currentVelocityRPM;
+    private boolean isLaunchable;
+    private TargetMode target;
+
 
     private ArrayList<RPMEntry> distanceRPM;
     private ArrayList<RPMEntry> velocityRPM;
 
+    public enum TargetMode {
+        HIVE(0),    // Shoot at the hive
+        FLOWER(1),       // Shoot at the flower
+        NONE(3);            // No mode, do nothing
 
+        private final int value;
+        TargetMode(int value){
+            this.value = value;
+        }
+    }
     private class RPMEntry{
         public double value;
         public double rpm;
@@ -49,7 +63,11 @@ public class Launcher extends RobotPart{
 
     public Launcher(StandardSetupOpMode ssom){
         this.ssom = ssom;
+        target = TargetMode.HIVE;
         launchMotor = ssom.hardwareMap.get(DcMotorEx.class, "launchMotor");
+
+        //Default to launchable until distance is outside the range.
+        isLaunchable = true;
 
         // Setup PID and motor
         launchMotor.setVelocityPIDFCoefficients(kP, kI, kD, kF);
@@ -75,46 +93,60 @@ public class Launcher extends RobotPart{
         // Table of distances in meters to RPM
         distanceRPM = new ArrayList<>(List.of(
                 new RPMEntry(0.0, 0.0),
-                new RPMEntry(0.5, 2577.0),
-                new RPMEntry(1.07, 2577.0),
-                new RPMEntry(1.87, 3030.0),
-                new RPMEntry(2.07, 3262.0),
-                new RPMEntry(3.07, 3970.0),
-                new RPMEntry(3.07, 3970.0),
-                new RPMEntry(3.2, 3985.0),
-                new RPMEntry(4.0, 4408.0),
-                new RPMEntry(5.0, 4408.0)
+                new RPMEntry(0.25, 1500.0),
+                new RPMEntry(0.5, 2400.0),
+                new RPMEntry(1.0, 2450.0),
+                new RPMEntry(1.25, 2600.0),
+                new RPMEntry(1.5, 2800.0),
+                new RPMEntry(1.75, 3000.0),
+                new RPMEntry(2.00, 3200.0),
+                new RPMEntry(2.25, 3400.0),
+                new RPMEntry(2.5, 3700.0),
+                new RPMEntry(2.75, 4000.0)
         ));
     }
 
-    public void setRPMFromDistance(double distance, double extraRPM, double V){
+    public void setTargetMode(TargetMode targetMode){
+        target = targetMode;
+    }
+
+    public void setRPMFromDistance(double distance, double extraRPM){
+        setRPMFromDistance(distance, extraRPM, 0);
+    }
+
+    public void setRPMFromDistance(double distance, double extraRPM, double V) {
         double rpm = 0;
         double vxrpm = 0;
 
-        for(int i = 0; i < velocityRPM.size()-1; i++) {
-            if (V < velocityRPM.get(0).value)
-                vxrpm = velocityRPM.get(0).rpm;
-            else if (V >= velocityRPM.get(velocityRPM.size()-1).value)
-                vxrpm = velocityRPM.get(velocityRPM.size()-1).rpm;
-            else if(velocityRPM.get(i).value < V && V < velocityRPM.get(i+1).value){
-                double deltaX = velocityRPM.get(i+1).value - velocityRPM.get(i).value;
-                double deltaRPM = velocityRPM.get(i+1).rpm - velocityRPM.get(i).rpm;
-                vxrpm = velocityRPM.get(i).rpm + deltaRPM * ((V - velocityRPM.get(i).value) / deltaX);
-            }
-        }
+        if (target == TargetMode.HIVE && (distance <= MIN_THRESHOLD_DISTANCE || distance >= MAX_THRESHOLD_DISTANCE)) {
+            isLaunchable = false;
+        } else {
 
-        for(int i = 0; i < distanceRPM.size()-1; i++) {
-            if (distance < distanceRPM.get(0).value)
-                rpm = distanceRPM.get(0).rpm;
-            else if (distance >= distanceRPM.get(distanceRPM.size()-1).value)
-                rpm = distanceRPM.get(distanceRPM.size()-1).rpm;
-            else if(distanceRPM.get(i).value < distance && distance < distanceRPM.get(i+1).value){
-                double deltaDistance = distanceRPM.get(i+1).value - distanceRPM.get(i).value;
-                double deltaRPM = distanceRPM.get(i+1).rpm - distanceRPM.get(i).rpm;
-                rpm = distanceRPM.get(i).rpm + deltaRPM * ((distance - distanceRPM.get(i).value) / deltaDistance);
+            for (int i = 0; i < velocityRPM.size() - 1; i++) {
+                if (V < velocityRPM.get(0).value)
+                    vxrpm = velocityRPM.get(0).rpm;
+                else if (V >= velocityRPM.get(velocityRPM.size() - 1).value)
+                    vxrpm = velocityRPM.get(velocityRPM.size() - 1).rpm;
+                else if (velocityRPM.get(i).value < V && V < velocityRPM.get(i + 1).value) {
+                    double deltaX = velocityRPM.get(i + 1).value - velocityRPM.get(i).value;
+                    double deltaRPM = velocityRPM.get(i + 1).rpm - velocityRPM.get(i).rpm;
+                    vxrpm = velocityRPM.get(i).rpm + deltaRPM * ((V - velocityRPM.get(i).value) / deltaX);
+                }
             }
+
+            for (int i = 0; i < distanceRPM.size() - 1; i++) {
+                if (distance < distanceRPM.get(0).value)
+                    rpm = distanceRPM.get(0).rpm;
+                else if (distance >= distanceRPM.get(distanceRPM.size() - 1).value)
+                    rpm = distanceRPM.get(distanceRPM.size() - 1).rpm;
+                else if (distanceRPM.get(i).value < distance && distance < distanceRPM.get(i + 1).value) {
+                    double deltaDistance = distanceRPM.get(i + 1).value - distanceRPM.get(i).value;
+                    double deltaRPM = distanceRPM.get(i + 1).rpm - distanceRPM.get(i).rpm;
+                    rpm = distanceRPM.get(i).rpm + deltaRPM * ((distance - distanceRPM.get(i).value) / deltaDistance);
+                }
+            }
+            setVelocityRPM(rpm + extraRPM + vxrpm);
         }
-        setVelocityRPM(rpm+extraRPM+vxrpm);
     }
 
     public void setVelocityRPM(double velocityRPM) {
@@ -162,9 +194,11 @@ public class Launcher extends RobotPart{
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 2) != 0) {
-            telemetry.addData("launchTargetVelocity", targetVelocityRPM);
-            telemetry.addData("launchInterimVelocity", interimVelocityRPM);
-            telemetry.addData("launchCurrentVelocity", currentVelocityRPM);
+            telemetry.addData("launchTargetVelocityRPM", targetVelocityRPM);
+            telemetry.addData("launchInterimVelocityRPM", interimVelocityRPM);
+            telemetry.addData("launchCurrentVelocityRPM", currentVelocityRPM);
+            telemetry.addData("Launchablility", isLaunchable ? "ITS A GO GO TIME" : "Please do not launch :(");
+            telemetry.addData("LaunchMode",target);
         }
     }
 }

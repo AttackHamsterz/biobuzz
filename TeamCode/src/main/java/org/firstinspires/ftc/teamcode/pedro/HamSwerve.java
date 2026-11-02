@@ -165,7 +165,13 @@ public class HamSwerve implements Drivetrain {
             // Normalizing if necessary while preserving relative sizes
             Vector2D finalVector = podVectors[podNum].times(1 / maxMagnitude);
 
-            pods.get(podNum).move(finalVector.theta(), finalVector.magnitude() * avgScaling,
+            // Small commands can't overcome static friction, so a nearly-finished path correction
+            // stalls short of the target. Lift any real command above the friction threshold.
+            double power = finalVector.magnitude();
+            if (power > config.epsilon.get())
+                power = Constants.STATIC_DRIVE_POWER + (1 - Constants.STATIC_DRIVE_POWER) * power;
+
+            pods.get(podNum).move(finalVector.theta(), power * avgScaling,
                     zeroTrans && zeroRotation && config.zeroPowerBehavior.get() == SwerveConfig.ZeroPowerBehavior.IGNORE_ANGLE_CHANGES);
         }
     }
