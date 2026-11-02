@@ -92,6 +92,20 @@ public class Eye extends RobotPart {
                         // See which fiducial it is
                         if (ssom.color == StandardSetupOpMode.COLOR.BLUE && blueFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Blue mode and see a blue fiducial
+
+                      int id = fiducial.getFiducialId();
+                       double tx = fiducial.getTargetXDegrees();
+
+                       double ty = fiducial.getTargetYDegrees();
+
+                       double ta = resultInUse.getTa();
+
+                        if (tx < 3 || tx > 18)
+                        {
+                            return;
+                        }
+
+
                         } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Red mode and see a red fiducial
                         }
