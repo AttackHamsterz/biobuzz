@@ -26,6 +26,12 @@ public class Constants {
     // Turned off 2026-11-01 to rule it out while debugging localization and spin drift.
     public static final double STATIC_DRIVE_POWER = 0.0;
 
+    // 2026-11-01 - TODO Check cal
+    //public static final double FRONT_LEFT_ZERO = 2.332;
+    //public static final double FRONT_RIGHT_ZERO = 1.111;
+    //public static final double BACK_LEFT_ZERO = 1.23;
+    //public static final double BACK_RIGHT_ZERO = 1.304;
+
     public static final double FRONT_LEFT_ZERO = 2.466;
     public static final double FRONT_LEFT_MIN = 0.013;
     public static final double FRONT_LEFT_MAX = 3.225;
