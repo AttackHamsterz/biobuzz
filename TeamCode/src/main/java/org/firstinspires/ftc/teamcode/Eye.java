@@ -116,6 +116,8 @@ public class Eye extends RobotPart {
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
                     for(LLResultTypes.FiducialResult fiducial : fiducials) {
+                       /* Pose3D targetRobotSpace = resultInUse.getTargetPoseRobotSpace();*/
+
                         Integer id = fiducial.getFiducialId();
                         Position fiducialResult = fiducial.getTargetPoseRobotSpace().getPosition();
 
