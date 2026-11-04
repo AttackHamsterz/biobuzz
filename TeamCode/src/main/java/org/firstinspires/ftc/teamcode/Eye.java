@@ -7,9 +7,14 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class Eye extends RobotPart {
     //private static final double CLOSE_ENOUGH_DEGREES = 6.0;
@@ -19,6 +24,11 @@ public class Eye extends RobotPart {
     private final StandardSetupOpMode ssom;
     private final List<Integer> redFiducials = Arrays.asList(30, 31, 32, 33, 34, 35, 36, 37);
     private final List<Integer> blueFiducials = Arrays.asList(38, 39, 40, 41, 42, 43, 44, 45);
+    private List<Integer> audienceBlueFiducials = Arrays.asList(38,39,40,41);
+    private List<Integer> scoringBlueFiducials = Arrays.asList(42,43,44,45);
+    private List<Integer> audienceRedFiducials = Arrays.asList(30,31,32,33);
+    private List<Integer> scoringRedFiducials = Arrays.asList(34,35,36,37);
+    public List<Hive> hives;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
         FIND_HIVE(1),       // Finding the fiducials
@@ -56,6 +66,11 @@ public class Eye extends RobotPart {
         // Setup limelight
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(150); // This sets how often we ask Limelight for data (100 times per second)
+        this.hives = new ArrayList<Hive>();
+        this.hives.add(new Hive("blue", "blue audience", audienceBlueFiducials));
+        this.hives.add(new Hive("blue", "blue scoring", scoringBlueFiducials));
+        this.hives.add(new Hive("red", "red audience", audienceRedFiducials));
+        this.hives.add(new Hive("red", "red scoring", scoringRedFiducials));
 
             /* Table of distances for in/s to angle degrees
             deltaAim = new ArrayList<>(List.of(
@@ -92,26 +107,39 @@ public class Eye extends RobotPart {
 
         if (mode == Mode.FIND_HIVE) {
             resultInUse = limelight.getLatestResult();
+            Pose3D botPose = resultInUse.getBotpose();
+            YawPitchRollAngles llOrientation = botPose.getOrientation();
+            Position llPosition = botPose.getPosition();
+
+            
             if (resultInUse != null) {
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
                     for(LLResultTypes.FiducialResult fiducial : fiducials) {
+                        Integer id = fiducial.getFiducialId();
+                        Position fiducialResult = fiducial.getTargetPoseRobotSpace().getPosition();
+
+                        for (Hive hive : this.hives) {
+                            for (Fiducial hiveFiducial : hive.fiducials)
+                            {
+                                if (hiveFiducial.id == id) {
+                                    hiveFiducial.x = fiducialResult.x;
+                                    hiveFiducial.y = fiducialResult.y;
+                                    hiveFiducial.z = fiducialResult.z;
+
+                                    if (hiveFiducial.z >= 0.85) {
+                                        hive.isUp = true;
+                                    } else {
+                                        hive.isUp = false;
+                                    }
+                                }
+                            }
+                        }
                         // See which fiducial it is
                         if (ssom.color == StandardSetupOpMode.COLOR.BLUE && blueFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Blue mode and see a blue fiducial
-
-                      int id = fiducial.getFiducialId();
-                       double tx = fiducial.getTargetXDegrees();
-
-                       double ty = fiducial.getTargetYDegrees();
-
-                       double ta = resultInUse.getTa();
-
-                        if (tx < 3 || tx > 18)
-                        {
-                            return;
-                        }
-
+                            if (llPosition.z >= 0.85){
+                            }
 
                         } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Red mode and see a red fiducial
@@ -130,6 +158,15 @@ public class Eye extends RobotPart {
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
-
+        if((DEBUG & 4) != 0) {
+            for (Hive hive : this.hives) {
+                telemetry.addData(hive.name + " isUp: ", hive.isUp);
+                for (Fiducial fiducial : hive.fiducials) {
+                    telemetry.addData(hive.name + " " + fiducial.id + " x:", fiducial.x );
+                    telemetry.addData(hive.name + " " + fiducial.id + " y:", fiducial.y );
+                    telemetry.addData(hive.name + " " + fiducial.id + " z:", fiducial.z );
+                }
+            }
+        }
     }
 }
