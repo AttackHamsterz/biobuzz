@@ -12,7 +12,13 @@ import com.pedropathing.tuning.autotune.DisplayName;
 import com.pedropathing.tuning.autotune.Inputs;
 import com.pedropathing.tuning.autotune.Procedure;
 import com.pedropathing.tuning.autotune.TuningOpMode;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.pedro.Constants;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -269,6 +275,7 @@ class TestsLocalization extends TuningOpMode<Boolean> {
     public Boolean runTuningOpMode() throws InterruptedException {
         Localizer localizer = localizerFunction.apply(hardwareMap);
         Drivetrain drivetrain = drivetrainFunction.apply(hardwareMap);
+        PinpointReadout readout = new PinpointReadout(hardwareMap);
 
         localizer.setPose(Pose.zero());
 
@@ -278,6 +285,7 @@ class TestsLocalization extends TuningOpMode<Boolean> {
             drivetrain.drive(new DrivePowers(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x), false);
             localizer.update();
             telemetry.addData("Pose", localizer.pose());
+            readout.addTo(telemetry);
             telemetry.update();
         }
         return true;
@@ -314,14 +322,41 @@ class TestsPose extends TuningOpMode<Boolean> {
     @Override
     public Boolean runTuningOpMode() throws InterruptedException {
         Localizer localizer = localizerFunction.apply(hardwareMap);
+        PinpointReadout readout = new PinpointReadout(hardwareMap);
         waitForStart();
         while (opModeIsActive()) {
             localizer.update();
             telemetry.addData("Pose", localizer.pose());
+            readout.addTo(telemetry);
             telemetry.update();
         }
         return true;
     }
 }
 
+/**
+ * Raw Pinpoint values for telemetry. Uses the same device object the localizer reads, so these
+ * show what its last update() read.
+ * At rest: changing encoders = pod or wiring; steady encoders but drifting heading = IMU.
+ */
+class PinpointReadout {
+    private final GoBildaPinpointDriver pinpoint;
 
+    PinpointReadout(HardwareMap hardwareMap) {
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, Constants.localizerConfig.name.get());
+    }
+
+    void addTo(Telemetry telemetry) {
+        telemetry.addData("Status", pinpoint.getDeviceStatus());
+        telemetry.addData("Encoder X / Y", "%d / %d", pinpoint.getEncoderX(), pinpoint.getEncoderY());
+        telemetry.addData("Heading (deg)", "%.2f", pinpoint.getHeading(AngleUnit.DEGREES));
+        // Firmware 1 and 2 throw on pitch/roll, so only ask newer boards.
+        int firmware = pinpoint.getDeviceVersion();
+        if (firmware >= 3)
+            telemetry.addData("Pitch / Roll (deg)", "%.1f / %.1f", pinpoint.getPitch(AngleUnit.DEGREES), pinpoint.getRoll(AngleUnit.DEGREES));
+        else
+            telemetry.addData("Pitch / Roll (deg)", "n/a on firmware %d", firmware);
+        telemetry.addData("Offsets X / Y (in)", "%.3f / %.3f", pinpoint.getXOffset(DistanceUnit.INCH), pinpoint.getYOffset(DistanceUnit.INCH));
+        telemetry.addData("Loop Hz", "%.0f", pinpoint.getFrequency());
+    }
+}

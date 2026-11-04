@@ -2,6 +2,11 @@ package org.firstinspires.ftc.teamcode;
 
 import java.util.List;
 import java.util.ArrayList;
+
+import com.pedropathing.controllers.Controller;
+import com.pedropathing.utils.Angle;
+import com.pedropathing.utils.Utils;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.Range;
 
@@ -35,10 +40,25 @@ public class Launcher extends RobotPart{
     private boolean isLaunchable;
     private TargetMode target;
 
-
     private ArrayList<RPMEntry> distanceRPM;
     private ArrayList<RPMEntry> velocityRPM;
 
+    // FOR AUDREY
+    // These variables capture turret rotation
+    private static final double TWO_PI = Math.PI * 2.0;
+    private static final double CLOSE_ENOUGH_RADIANS = 0.008726646; //  Half a degree seems close enough
+    private static final double ENCODER_TICS_PER_REV = 4000.0;
+    private static final double ENCODER_GEAR_RATIO = 6.75; // Small pulley 20 teeth, large pulley 135 teeth
+    private static final double ELC_SCALE_FACTOR = 1.0 / (ENCODER_TICS_PER_REV * ENCODER_GEAR_RATIO);
+    private static final double TURN_P = 0.9;
+    private static final double TURN_I = 0.0;
+    private static final double TURN_D = 0.085;
+    private static final double TURN_F = 0.15;
+    private final CRServo launchServo;
+    private final Controller launchServoController; // PID uses radians (tune PIDF for radian error)
+    private double launchAngleRadians;
+
+    // Enumerations and definitions
     public enum TargetMode {
         HIVE(0),    // Shoot at the hive
         FLOWER(1),       // Shoot at the flower
@@ -65,6 +85,7 @@ public class Launcher extends RobotPart{
         this.ssom = ssom;
         target = TargetMode.HIVE;
         launchMotor = ssom.hardwareMap.get(DcMotorEx.class, "launchMotor");
+        launchServo = ssom.hardwareMap.get(CRServo.class, "launchServo");
 
         //Default to launchable until distance is outside the range.
         isLaunchable = true;
@@ -72,8 +93,12 @@ public class Launcher extends RobotPart{
         // Setup PID and motor
         launchMotor.setVelocityPIDFCoefficients(kP, kI, kD, kF);
         launchMotor.setDirection(DcMotorEx.Direction.FORWARD);
+
+        // Setup launch servo and digital encoder
         launchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         launchMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        launchServoController = Controller.pid(TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(TURN_F));
+        launchAngleRadians = 0;
 
         // Initial Motor speeds
         targetVelocityRPM = 0;
@@ -104,6 +129,37 @@ public class Launcher extends RobotPart{
                 new RPMEntry(2.5, 3700.0),
                 new RPMEntry(2.75, 4000.0)
         ));
+    }
+
+    public double getLaunchAngleDegrees(){
+        return Math.toDegrees(getLaunchAngleRadians());
+    }
+    public double getLaunchAngleRadians(){
+        return ((((double)-launchMotor.getCurrentPosition() * ELC_SCALE_FACTOR) + 1.0) % 1.0) * TWO_PI;
+    }
+    public void setLaunchAngleDegrees(double launchAngleDegrees){
+        launchAngleRadians = Math.toRadians(launchAngleDegrees);
+    }
+    public void setLaunchAngleRadians(double launchAngleRadians) {
+        this.launchAngleRadians = launchAngleRadians;
+    }
+    private void updateLaunchAngle(){
+        // Convert hardware angle to radians and normalize
+        double actualRad = Angle.normalize(getLaunchAngleRadians());
+        double desiredRad = Angle.normalize(launchAngleRadians);
+
+        // Shortest-path error in radians (signed)
+        double mag = Angle.smallestDifference(actualRad, desiredRad);
+        if (mag < CLOSE_ENOUGH_RADIANS) return; // Close enough, do nothing!
+        double dir = Angle.turnDirection(actualRad, desiredRad);
+        double errorRad = mag * dir;
+
+        // Setpoint close to current so PID follows shortest path
+        double turnPower = Utils.clamp(
+                    launchServoController.calculate(0, errorRad),
+                    -1.0,
+                    1.0);
+        launchServo.setPower(turnPower);
     }
 
     public void setTargetMode(TargetMode targetMode){
@@ -170,6 +226,24 @@ public class Launcher extends RobotPart{
 
     @Override
     public void loop() {
+        // First step, make sure the launch servo is turned to the correct angle
+        if(!ssom.ignoreGamepad) {
+            if(ssom.gamepad1.dpad_up)
+                launchAngleRadians = 0;
+            else if(ssom.gamepad1.dpad_left)
+                launchAngleRadians = Math.PI / 2.0;
+            else if(ssom.gamepad1.dpad_down)
+                launchAngleRadians = Math.PI;
+            else if(ssom.gamepad1.dpad_right)
+                launchAngleRadians = 3.0 * Math.PI / 2.0;
+        }
+        updateLaunchAngle();
+
+        // Second step, make sure the launch motor is spinning at the right speed
+        if(!ssom.ignoreGamepad){
+            launchMotor.setPower(ssom.gamepad1.left_trigger);
+        }
+/*
             // Slew interimVelocityRPM toward targetVelocityRPM
             // Ramp UP gradually to limit inrush current; ramp DOWN instantly
             if (interimVelocityRPM < targetVelocityRPM) {
@@ -188,12 +262,14 @@ public class Launcher extends RobotPart{
         targetVelocityRPM = 0;
         interimVelocityRPM = 0;
         currentVelocityRPM = 0;
+*/
     }
 
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 2) != 0) {
+            telemetry.addData("launchAngle", getLaunchAngleDegrees());
             telemetry.addData("launchTargetVelocityRPM", targetVelocityRPM);
             telemetry.addData("launchInterimVelocityRPM", interimVelocityRPM);
             telemetry.addData("launchCurrentVelocityRPM", currentVelocityRPM);
