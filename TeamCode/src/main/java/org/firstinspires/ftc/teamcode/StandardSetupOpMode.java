@@ -43,6 +43,7 @@ public class StandardSetupOpMode extends OpMode {
     protected final ArrayList<Map.Entry<RobotPart, Integer> > partsList = new ArrayList<>();
     public Motion motion;
     public Intake intake;
+    public Launcher launcher;
     public BallStopper ballStopper;
     private ScheduledExecutorService threadPool;
 
@@ -61,10 +62,12 @@ public class StandardSetupOpMode extends OpMode {
         // Parts
         motion = new Motion(this);
         intake = new Intake(this);
+        launcher = new Launcher(this);
         //ballStopper = new BallStopper(this);
         // Add parts to parts list
         partsList.add(Map.entry(motion, 20));
         partsList.add(Map.entry(intake, 20));
+        partsList.add(Map.entry(launcher, 20));
         //partsList.add(Map.entry(ballStopper, 20));
 
         // Init parts

@@ -22,8 +22,15 @@ public class Constants {
 
     // Smallest drive power that actually moves the robot (static friction). Real drive commands
     // are lifted to at least this so a nearly-finished correction can't stall. 0 = off.
-    // Measured breakaway was about 0.1 in Swerve Calibration; 0.08 is 80% of that.
-    public static final double STATIC_DRIVE_POWER = 0.08;
+    // Measured breakaway was about 0.1 in Swerve Calibration; 0.08 (80% of that) was the old value.
+    // Turned off 2026-11-01 to rule it out while debugging localization and spin drift.
+    public static final double STATIC_DRIVE_POWER = 0.0;
+
+    // 2026-11-01 - TODO Check cal
+    //public static final double FRONT_LEFT_ZERO = 2.332;
+    //public static final double FRONT_RIGHT_ZERO = 1.111;
+    //public static final double BACK_LEFT_ZERO = 1.23;
+    //public static final double BACK_RIGHT_ZERO = 1.304;
 
     public static final double FRONT_LEFT_ZERO = 2.466;
     public static final double FRONT_LEFT_MIN = 0.013;
@@ -115,12 +122,16 @@ public class Constants {
             c -> {
                 c.name.set("pinpoint");
                 c.podType.set(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-                // Tape check 2026-10-25, in the code's frame (its front may be the end the team
-                // calls the back). Not yet verified with a spin test.
-                c.xPodOffset.set(-4.0);
-                c.yPodOffset.set(7.0);
+                // Measured 2026-11-01. Both pods are at the back: the forward pod is 3.875" right
+                // of center, the strafe pod 8.233" behind. Pinpoint wants left and forward as
+                // positive, so both are negative. Stick-up drives away from the pods, confirming
+                // the code's front is the team's front. Spin test passed (within ~1.6" at 180 deg).
+                c.xPodOffset.set(-3.875);
+                c.yPodOffset.set(-8.233);
                 c.xPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
-                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+                // REVERSED 2026-11-01: strafing right raised y (Pedro's +y is left), and a 180 deg spin
+                // was off by 2 x 16.5", both of which match a backward strafe pod.
+                c.yPodDirection.set(GoBildaPinpointDriver.EncoderDirection.REVERSED);
                 c.globalDistanceUnit.set(DistanceUnit.INCH);
                 c.offsetUnits.set(DistanceUnit.INCH);
             }
@@ -149,14 +160,14 @@ public class Constants {
             c.naturalStrafeDeceleration.set(52.0);
             c.maxDecelerationConstraint.set(52.0);
 
-            double lateralScale = 0.18;
+            double lateralScale = 1.0; // was 0.18 while the strafe pod read backward (fixed 2026-11-01)
             Controller primaryTranslationalForward = Controller.proportional(0.2326085417794935*driveScale);
             Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558*driveScale);
             Controller primaryTranslationalLateral = Controller.proportional(0.2326085417794935*lateralScale);
             Controller secondaryTranslationalLateral = Controller.proportional(0.08594264077281558*lateralScale);
             // Largest power each path-correction axis may ask for (1.0 = no cap). Foresight gives
             // correction priority over driving, so an uncapped correction can take all the power.
-            double correctionCap = 1.0;
+            double correctionCap = 0.5;
             c.forwardTranslational.set(capped(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward), correctionCap));
             c.strafeTranslational.set(capped(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral), correctionCap));
             c.coast.set(Controller.proportionalFeedforward(0.011878192675601161));
