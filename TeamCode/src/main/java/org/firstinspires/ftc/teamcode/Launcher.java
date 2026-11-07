@@ -8,6 +8,7 @@ import com.pedropathing.utils.Angle;
 import com.pedropathing.utils.Utils;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -92,7 +93,7 @@ public class Launcher extends RobotPart{
 
         // Setup PID and motor
         launchMotor.setVelocityPIDFCoefficients(kP, kI, kD, kF);
-        launchMotor.setDirection(DcMotorEx.Direction.FORWARD);
+        launchMotor.setDirection(DcMotorEx.Direction.REVERSE);
 
         // Setup launch servo and digital encoder
         launchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
