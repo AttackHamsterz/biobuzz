@@ -73,6 +73,13 @@ public class HamSwerve implements Drivetrain {
         }
     }
 
+    // For RunLog
+    public List<SwervePod> getPods() { return pods; }
+    public double getLastForward() { return lastForward; }
+    public double getLastStrafe() { return lastStrafe; }
+    public double getLastRotation() { return lastRotation; }
+    public double getLastAvgScaling() { return lastAvgScaling; }
+
     @Override
     public Map<String, Object> debug() {
         Map<String, Object> map = new HashMap<>();

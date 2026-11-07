@@ -125,6 +125,14 @@ public class GearedCoaxialPod implements SwervePod {
     public double targetAngle = 0;
     public double targetPower = 0;
 
+    // Last move() values for RunLog (encoder frame, after the >90 deg flip). Captured here so
+    // logging adds no extra hardware reads.
+    public double logActualDeg = 0;
+    public double logDesiredDeg = 0;
+    public double logErrorDeg = 0;
+    public double logTurnPower = 0;
+    public double logDrivePower = 0;
+
     @Override
     public void move(double targetAngleRad, double drivePower, boolean ignoreAngleChanges) {
         move(targetAngleRad, drivePower, ignoreAngleChanges, true);
@@ -175,6 +183,12 @@ public class GearedCoaxialPod implements SwervePod {
                     -1.0, 1.0
             );
         }
+
+        logActualDeg = Math.toDegrees(actualRad);
+        logDesiredDeg = Math.toDegrees(desiredRad);
+        logErrorDeg = Math.toDegrees(errorRad);
+        logTurnPower = ignoreAngleChanges ? 0 : turnPower;
+        logDrivePower = drivePower;
 
         // Avoid overshoot
         if (ignoreAngleChanges) {
