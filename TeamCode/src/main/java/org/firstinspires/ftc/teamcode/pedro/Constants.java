@@ -26,6 +26,12 @@ public class Constants {
     // Turned off 2026-11-01 to rule it out while debugging localization and spin drift.
     public static final double STATIC_DRIVE_POWER = 0.0;
 
+    // Auto only (HamSwerve): drive power ramps from 0 when the pods average this many degrees off
+    // their target angle up to full power when aligned, so the robot doesn't push the wrong way
+    // while the pods are still turning. 2026-11-06: added for side-to-side steering oscillation
+    // near the end of paths. 90 gives back the old plain cos scaling exactly.
+    public static final double AUTO_ALIGN_GATE_DEG = 30.0;
+
     // 2026-11-01 - TODO Check cal
     //public static final double FRONT_LEFT_ZERO = 2.332;
     //public static final double FRONT_RIGHT_ZERO = 1.111;
@@ -152,7 +158,7 @@ public class Constants {
             c.headingDriveRatio.set(0.3);
             c.cosineScale.set(true);
 
-            double driveScale = 2.0;
+            double driveScale = 1.0; // was 2.0 (2026-11-06: over-corrected on the Line Test)
 
             c.maxAchievableForwardVelocity.set(82.357);
             c.maxAchievableStrafeVelocity.set(82.357);
@@ -160,20 +166,37 @@ public class Constants {
             c.naturalStrafeDeceleration.set(52.0);
             c.maxDecelerationConstraint.set(52.0);
 
-            double lateralScale = 1.0; // was 0.18 while the strafe pod read backward (fixed 2026-11-01)
+            // was 0.18 while the strafe pod read backward (fixed 2026-11-01); 1.0 (flat kP 0.23) weaved
+            // 5-6 in side to side, worst near the target, so halved 2026-11-06.
+            double lateralScale = 0.5;
             Controller primaryTranslationalForward = Controller.proportional(0.2326085417794935*driveScale);
-            Controller secondaryTranslationalForward = Controller.proportional(0.08594264077281558*driveScale);
-            Controller primaryTranslationalLateral = Controller.proportional(0.2326085417794935*lateralScale);
-            Controller secondaryTranslationalLateral = Controller.proportional(0.08594264077281558*lateralScale);
+            // 2026-11-06: lateral D to damp the side-to-side steering oscillation. Pedro's PIDController
+            // takes d(error)/dt per SECOND (nanoTime), error in inches, so D is power per in/s.
+            // Foresight already damps a little: the error uses pose + brake displacement, which works
+            // out to about kP * linearBrake (0.116 * 0.0947 = ~0.011 per in/s). 0.01 roughly doubles it.
+            // 0.01 held the line much better but swung the pods 3-4x/s; 0.005 went off course much
+            // more for little gain, so back to 0.01. RunLog (bulk cached, 28 Hz) showed the strafe
+            // command flipping cap to cap ~3x/s on +-0.3 in wobbles, driven by the speed terms
+            // (brake prediction ~0.25 at 10 in/s + D ~0.1), so D off; brake prediction alone damps.
+            double lateralD = 0.0;
+            Controller primaryTranslationalLateral = Controller.pid(0.2326085417794935*lateralScale, 0, lateralD);
+            // 2026-11-06: flat gain on both axes. The old piecewise step to a secondary gain
+            // (0.08594264077281558) under 2.5 in was a ~2.7x jump and made the Line Test over-correct.
             // Largest power each path-correction axis may ask for (1.0 = no cap). Foresight gives
             // correction priority over driving, so an uncapped correction can take all the power.
             double correctionCap = 0.5;
-            c.forwardTranslational.set(capped(Controller.piecewise(secondaryTranslationalForward).put(2.5, primaryTranslationalForward), correctionCap));
-            c.strafeTranslational.set(capped(Controller.piecewise(secondaryTranslationalLateral).put(2.5, primaryTranslationalLateral), correctionCap));
+            // 2026-11-06: lateral capped lower so the correction eases back instead of snapping. On
+            // swerve the correction steers the wheels; 0.2 against normal drive power is ~14 deg max.
+            // Hold uses the same controller; 0.2 is still above the ~0.1 breakaway power.
+            double lateralCorrectionCap = 0.2;
+            c.forwardTranslational.set(capped(primaryTranslationalForward, correctionCap));
+            c.strafeTranslational.set(capped(primaryTranslationalLateral, lateralCorrectionCap));
             c.coast.set(Controller.proportionalFeedforward(0.011878192675601161));
             c.brake.set(Controller.proportionalFeedforward(0.010096463774260987));
 
-            double headingGainScale = 0.004;
+            // 2026-11-06: was 0.004 (kP 0.04 -> HamSwerve epsilon zeroed heading errors under ~25 deg).
+            // 0.05 (kP 0.5) held heading but overshot; halved.
+            double headingGainScale = 0.025; // kP 0.25
             double headingBrakeScale = 0.004;
             c.headingFeedback.set(Controller.proportional(10*headingGainScale));
             c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*headingBrakeScale, 0.07330594236272889*headingBrakeScale));

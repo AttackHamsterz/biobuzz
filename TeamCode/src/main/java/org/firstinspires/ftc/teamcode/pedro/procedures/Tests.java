@@ -13,13 +13,16 @@ import com.pedropathing.tuning.autotune.Inputs;
 import com.pedropathing.tuning.autotune.Procedure;
 import com.pedropathing.tuning.autotune.TuningOpMode;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
+import org.firstinspires.ftc.teamcode.pedro.RunLog;
 
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -165,19 +168,38 @@ class TestsLine extends TuningOpMode<Boolean> {
         Path path1 = line(Pose.zero(), new Pose(distance,0, 0)).constant(0);
         Path path2 = line(new Pose(distance,0, 0), Pose.zero()).constant(0);
 
+        // Bulk caching, same as StandardSetupOpMode (auto/TeleOp). Without it every pod encoder read
+        // is its own hub transaction and the loop ran ~22 Hz (2026-11-06 log).
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
         waitForStart();
+        // Per-loop CSV in /sdcard/FIRST/pedrologs for tuning (leg 1 = out, 2 = back).
+        RunLog log = new RunLog(follower, "line");
+        telemetry.addData("Logging to", log.path);
+        telemetry.update();
         follower.follow(path1);
 
-        while (opModeIsActive()) {
-            follower.update();
-            if (follower.atParametricEnd()) {
-                if (forward) {
-                    follower.follow(path2);
-                } else {
-                    follower.follow(path1);
+        try {
+            while (opModeIsActive()) {
+                for (LynxModule hub : hubs) {
+                    hub.clearBulkCache();
                 }
-                forward = !forward;
+                follower.update();
+                log.row(forward ? 1 : 2);
+                if (follower.atParametricEnd()) {
+                    if (forward) {
+                        follower.follow(path2);
+                    } else {
+                        follower.follow(path1);
+                    }
+                    forward = !forward;
+                }
             }
+        } finally {
+            log.close();
         }
         return true;
     }
