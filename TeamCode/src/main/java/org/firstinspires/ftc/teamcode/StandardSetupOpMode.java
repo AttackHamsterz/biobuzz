@@ -45,7 +45,7 @@ public class StandardSetupOpMode extends OpMode {
     public Intake intake;
     public Launcher launcher;
     public BallStopper ballStopper;
-    private ScheduledExecutorService threadPool;
+    protected ScheduledExecutorService threadPool;
 
     protected List<LynxModule> allHubs;
 
