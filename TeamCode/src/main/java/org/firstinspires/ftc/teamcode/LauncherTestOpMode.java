@@ -1,20 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.lynx.LynxModule;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @TeleOp(name = "Launcher Test", group = "Robot")
-public class LauncherStandardSetupOpMode extends StandardSetupOpMode {
+public class LauncherTestOpMode extends StandardSetupOpMode {
 
     @Override
     public void init() {
@@ -37,5 +30,16 @@ public class LauncherStandardSetupOpMode extends StandardSetupOpMode {
 
         // Setup the thread pool
         threadPool = Executors.newScheduledThreadPool(partsList.size());
+    }
+
+    @Override public void loop() {
+        // Ensure ssom loop is called
+        super.loop();
+
+        // Update telemetry
+        if(RobotPart.DEBUG != 0) {
+            super.partsList.forEach(part -> part.getKey().getTelemetry(telemetry));
+            if (!super.partsList.isEmpty()) telemetry.update();
+        }
     }
 }
