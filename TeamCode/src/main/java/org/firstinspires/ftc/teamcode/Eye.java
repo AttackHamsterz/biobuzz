@@ -62,10 +62,10 @@ public class Eye extends RobotPart {
 
     public Eye(StandardSetupOpMode ssom) {
         this.ssom = ssom;
-        this.mode = Mode.NONE;
+        this.mode = Mode.FIND_HIVE;
         // Setup limelight
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.setPollRateHz(150); // This sets how often we ask Limelight for data (100 times per second)
+        limelight.setPollRateHz(100); // This sets how often we ask Limelight for data
         this.hives = new ArrayList<Hive>();
         this.hives.add(new Hive("blue", "blue audience", audienceBlueFiducials));
         this.hives.add(new Hive("blue", "blue scoring", scoringBlueFiducials));
@@ -107,16 +107,16 @@ public class Eye extends RobotPart {
 
         if (mode == Mode.FIND_HIVE) {
             resultInUse = limelight.getLatestResult();
-            Pose3D botPose = resultInUse.getBotpose();
-            YawPitchRollAngles llOrientation = botPose.getOrientation();
-            Position llPosition = botPose.getPosition();
 
-            
             if (resultInUse != null) {
+                Pose3D botPose = resultInUse.getBotpose();
+                YawPitchRollAngles llOrientation = botPose.getOrientation();
+                Position llPosition = botPose.getPosition();
+
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
                     for(LLResultTypes.FiducialResult fiducial : fiducials) {
-                        Integer id = fiducial.getFiducialId();
+                        int id = fiducial.getFiducialId();
                         Position fiducialResult = fiducial.getTargetPoseRobotSpace().getPosition();
 
                         for (Hive hive : this.hives) {
@@ -129,30 +129,21 @@ public class Eye extends RobotPart {
 
                                     if (hiveFiducial.z >= 0.85) {
                                         hive.isUp = true;
+                                        // TODO - Check if the color of the HIVE matches the
+                                        // alliance color.  If yes, we can shoot!
                                     } else {
                                         hive.isUp = false;
                                     }
                                 }
                             }
                         }
-                        // See which fiducial it is
-                        if (ssom.color == StandardSetupOpMode.COLOR.BLUE && blueFiducials.contains(fiducial.getFiducialId())) {
-                            // we're in Blue mode and see a blue fiducial
-                            if (llPosition.z >= 0.85){
-                            }
-
-                        } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
-                            // we're in Red mode and see a red fiducial
-                        }
                     }
                 }
             }
         }
-        if (mode == Mode.LOCATE_POLLEN) {
+        else if (mode == Mode.LOCATE_POLLEN) {
 
         }
-        // Cleanup
-        //limelight.stop();
     }
 
 
@@ -162,9 +153,9 @@ public class Eye extends RobotPart {
             for (Hive hive : this.hives) {
                 telemetry.addData(hive.name + " isUp: ", hive.isUp);
                 for (Fiducial fiducial : hive.fiducials) {
-                    telemetry.addData(hive.name + " " + fiducial.id + " x:", fiducial.x );
-                    telemetry.addData(hive.name + " " + fiducial.id + " y:", fiducial.y );
-                    telemetry.addData(hive.name + " " + fiducial.id + " z:", fiducial.z );
+                    telemetry.addData("  " + fiducial.id + " x:", fiducial.x );
+                    telemetry.addData("  " + fiducial.id + " y:", fiducial.y );
+                    telemetry.addData("  " + fiducial.id + " z:", fiducial.z );
                 }
             }
         }
