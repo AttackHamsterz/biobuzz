@@ -151,7 +151,9 @@ public class Constants {
     // Foresight gains. Kept as named constants (not locals inside foresightConfig) so RunLog can
     // write them into every log's settings header; Pedro's Controller objects can't be read back.
     // Moved out of the lambda 2026-11-06 with no value changes.
-    public static final double TRANSLATIONAL_KP = 0.2326085417794935;
+    public static final double TRANSLATIONAL_KP = 0.2601685739694509;
+    public static final double SECONDARY_TRANSLATIONAL_KP = 0.09612533624938191;
+    public static final double SECONDARY_DISTANCE_IN = 3.0;
     public static final double DRIVE_SCALE = 1.0; // was 2.0 (2026-11-06: over-corrected on the Line Test)
     // was 0.18 while the strafe pod read backward (fixed 2026-11-01); 1.0 (flat kP 0.23) weaved
     // 5-6 in side to side, worst near the target, so halved 2026-11-06.
@@ -174,8 +176,8 @@ public class Constants {
     // swerve the correction steers the wheels; 0.2 against normal drive power is ~14 deg max.
     // Hold uses the same controller; 0.2 is still above the ~0.1 breakaway power.
     public static final double LATERAL_CORRECTION_CAP = 0.2;
-    public static final double COAST_FF = 0.011878192675601161;
-    public static final double BRAKE_FF = 0.010096463774260987;
+    public static final double COAST_FF = 0.011414566942689493;
+    public static final double BRAKE_FF = 0.0097023819012860;
     // 2026-11-06: was 0.004 (kP 0.04 -> HamSwerve epsilon zeroed heading errors under ~25 deg).
     // 0.05 (kP 0.5) held heading but overshot; halved.
     public static final double HEADING_GAIN_SCALE = 0.025; // kP 0.25 (headingFeedback is 10x this)
@@ -184,25 +186,47 @@ public class Constants {
     public static ForesightConfig foresightConfig = new ForesightConfig(
         c -> {
             c.headingDriveRatio.set(0.3);
-            c.cosineScale.set(true);
+            c.cosineScale.set(false);
+            c.translationalDeviationTolerance.set(5.0);
+            //c.headingDeviationTolerance.set(Math.toRadians(25.0));
 
-            c.maxAchievableForwardVelocity.set(82.357);
-            c.maxAchievableStrafeVelocity.set(82.357);
-            c.naturalForwardDeceleration.set(52.0);
-            c.naturalStrafeDeceleration.set(52.0);
-            c.maxDecelerationConstraint.set(52.0);
+            c.maxAchievableForwardVelocity.set(72.365);
+            c.maxAchievableStrafeVelocity.set(72.365);
 
-            Controller primaryTranslationalForward = Controller.proportional(TRANSLATIONAL_KP*DRIVE_SCALE);
-            Controller primaryTranslationalLateral = Controller.pid(TRANSLATIONAL_KP*LATERAL_SCALE, 0, LATERAL_D);
-            c.forwardTranslational.set(capped(primaryTranslationalForward, CORRECTION_CAP));
-            c.strafeTranslational.set(capped(primaryTranslationalLateral, LATERAL_CORRECTION_CAP));
+            c.naturalForwardDeceleration.set(27.418);
+            c.naturalStrafeDeceleration.set(27.418);
+            c.maxDecelerationConstraint.set(27.418);
+
+            final double LATERAL_PENALTY = 0.01;
+            //Controller primaryTranslationalForward = Controller.proportional(TRANSLATIONAL_KP*DRIVE_SCALE);
+            //Controller primaryTranslationalLateral = Controller.pid(TRANSLATIONAL_KP*LATERAL_SCALE, 0, LATERAL_D);
+            //c.forwardTranslational.set(capped(primaryTranslationalForward, CORRECTION_CAP));
+            //c.strafeTranslational.set(capped(primaryTranslationalLateral, LATERAL_CORRECTION_CAP));
+            Controller primaryTranslationalForward = Controller.proportional(TRANSLATIONAL_KP);
+            Controller secondaryTranslationalForward = Controller.proportional(SECONDARY_TRANSLATIONAL_KP);
+            Controller primaryTranslationalLateral = Controller.proportional(TRANSLATIONAL_KP*LATERAL_PENALTY);
+            Controller secondaryTranslationalLateral = Controller.proportional(SECONDARY_TRANSLATIONAL_KP*LATERAL_PENALTY);
+            c.forwardTranslational.set(Controller.piecewise(secondaryTranslationalForward).put(SECONDARY_DISTANCE_IN, primaryTranslationalForward));
+            c.strafeTranslational.set(Controller.piecewise(secondaryTranslationalLateral).put(SECONDARY_DISTANCE_IN, primaryTranslationalLateral));
+
             c.coast.set(Controller.proportionalFeedforward(COAST_FF));
             c.brake.set(Controller.proportionalFeedforward(BRAKE_FF));
 
-            c.headingFeedback.set(Controller.proportional(10*HEADING_GAIN_SCALE));
-            c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*HEADING_BRAKE_SCALE, 0.07330594236272889*HEADING_BRAKE_SCALE));
-            c.linearBrakeCoefficients.set(Matrix.diag(0.094687708786002, 0.094687708786002));
-            c.quadraticBrakeCoefficients.set(Matrix.diag(0.012229758832106856, 0.012229758832106856));
+            final double HEADING_PENALTY = 0.05;
+            final double HEADING_KP = 7.150330685072329 * HEADING_PENALTY;
+            final double HEADING_BRAKING_LINEAR = 0.22100516439160894;
+            final double HEADING_BRAKING_QUADRATIC = 0.07197599721328829;
+            final double FORWARD_BRAKING_LINEAR = 0.32139066129576177;
+            final double FORWARD_BRAKING_QUADRATIC = 0.010286445216378776;
+
+            c.headingFeedback.set(Controller.proportional(HEADING_KP));
+            //c.headingBrakeCoefficients.set(Vector2D.cartesian(0.17461910688461735*HEADING_BRAKE_SCALE, 0.07330594236272889*HEADING_BRAKE_SCALE));
+            //c.linearBrakeCoefficients.set(Matrix.diag(0.094687708786002, 0.094687708786002));
+            //c.quadraticBrakeCoefficients.set(Matrix.diag(0.012229758832106856, 0.012229758832106856));
+            c.headingBrakeCoefficients.set(Vector2D.cartesian(HEADING_BRAKING_LINEAR, HEADING_BRAKING_QUADRATIC));
+            c.linearBrakeCoefficients.set(Matrix.diag(FORWARD_BRAKING_LINEAR, FORWARD_BRAKING_LINEAR));
+            c.quadraticBrakeCoefficients.set(Matrix.diag(FORWARD_BRAKING_QUADRATIC, FORWARD_BRAKING_QUADRATIC));
+
         }
     );
 
