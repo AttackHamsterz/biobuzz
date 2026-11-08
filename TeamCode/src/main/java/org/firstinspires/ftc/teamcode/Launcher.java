@@ -245,8 +245,7 @@ public class Launcher extends RobotPart{
 
         // Second step, make sure the launch motor is spinning at the right speed
         if(!ssom.ignoreGamepad){
-            if(ssom.gamepad1.left_trigger>0.05)
-                launchMotor.setPower(ssom.gamepad1.left_trigger);
+            launchMotor.setPower(ssom.gamepad1.left_trigger);
             if(ssom.gamepad1.right_trigger>0.05)
                 launchServo.setPower(ssom.gamepad1.right_trigger);
         }
