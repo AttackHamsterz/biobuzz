@@ -32,25 +32,20 @@ public class Constants {
     // near the end of paths. 90 gives back the old plain cos scaling exactly.
     public static final double AUTO_ALIGN_GATE_DEG = 30.0;
 
-    // 2026-11-01 - TODO Check cal
-    //public static final double FRONT_LEFT_ZERO = 2.332;
-    //public static final double FRONT_RIGHT_ZERO = 1.111;
-    //public static final double BACK_LEFT_ZERO = 1.23;
-    //public static final double BACK_RIGHT_ZERO = 1.304;
-
-    public static final double FRONT_LEFT_ZERO = 2.466;
+    // 2026-11-08 - Cal
+    public static final double FRONT_LEFT_ZERO = 2.409;
     public static final double FRONT_LEFT_MIN = 0.013;
     public static final double FRONT_LEFT_MAX = 3.225;
 
-    public static final double FRONT_RIGHT_ZERO = 1.062;
+    public static final double FRONT_RIGHT_ZERO = 1.118;
     public static final double FRONT_RIGHT_MIN = 0.014;
     public static final double FRONT_RIGHT_MAX = 3.229;
 
-    public static final double BACK_LEFT_ZERO = 2.361;
+    public static final double BACK_LEFT_ZERO = 1.174;
     public static final double BACK_LEFT_MIN = 0.015;
     public static final double BACK_LEFT_MAX = 3.222;
 
-    public static final double BACK_RIGHT_ZERO = 1.299;
+    public static final double BACK_RIGHT_ZERO = 1.307;
     public static final double BACK_RIGHT_MIN = 0.02;
     public static final double BACK_RIGHT_MAX = 3.224;
 

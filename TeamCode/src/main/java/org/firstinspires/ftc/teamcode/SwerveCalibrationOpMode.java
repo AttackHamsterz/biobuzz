@@ -185,8 +185,9 @@ public class SwerveCalibrationOpMode extends OpMode {
             telemetry.addLine("Left stick left turns wheels counterclockwise from above");
             telemetry.addLine("Left stick forward spins wheels forward");
             telemetry.addLine("Flip directions in software if they do not behave");
-            telemetry.addLine("Align wheels (gears face same direction +x).  Press circle for zeroVoltage");
-            telemetry.addLine("Press x for new initAngle. Set zero voltages in software and recompile");
+            telemetry.addLine("Align wheels (gears face same direction +x).  Press b/circle for zeroVoltage");
+            telemetry.addLine("Press a/x for new initAngle. Set zero voltages in software and recompile");
+            telemetry.addLine("Press y, triangle to absolute zero wheel positions");
         }
         else {
             telemetry.addLine("Press square/x for help");
