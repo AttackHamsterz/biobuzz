@@ -84,7 +84,7 @@ public class RunLog {
             sb.append(",vx,vy,omegaDeg,tvx,tvy,predX,predY,predHdeg")
               .append(",transVx,transVy,driveVx,driveVy,nffX,nffY,headPow,headFf")
               .append(",tgtVel,remain,braking")
-              // badReads: running count of all-zero Pinpoint reads GuardedLocalizer dropped.
+              // badReads: running count of impossible Pinpoint reads GuardedLocalizer dropped.
               .append(",badReads");
             out.write(sb.toString());
             out.newLine();
@@ -158,7 +158,7 @@ public class RunLog {
             sb.append(",,,,,,,,,,,,,,");
         }
 
-        // Running count of all-zero Pinpoint reads GuardedLocalizer dropped (blank if not guarded).
+        // Running count of impossible Pinpoint reads GuardedLocalizer dropped (blank if not guarded).
         sb.append(',');
         if (follower.localizer instanceof GuardedLocalizer) {
             sb.append(((GuardedLocalizer) follower.localizer).rejectedReads);

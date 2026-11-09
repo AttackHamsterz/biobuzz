@@ -196,6 +196,11 @@ public class Constants {
     // while actual y swung +-0.6 in, and the lateral correction chased it (strafe kicks, pod swings,
     // align-gate power cuts). 0.0947 is the 2026-11-06 value, the calmest Line Test so far.
     public static final double STRAFE_BRAKING_LINEAR = 0.094687708786002;
+    // 2026-11-08: Foresight's acceleration limit (in/s^2); unset before, so every path launched at
+    // 0.58-0.74 power (0 -> 33 in/s in 0.25 s, ~130 in/s^2 average, peaks 200-380). Not the real
+    // acceleration: coast() asks for feedforward at (speed + this x loop dt), and the drive responds
+    // in ~0.15-0.25 s, so at ~44 Hz the real ramp is roughly 1/9 of this (inferred; check the log).
+    public static final double MAX_ACCELERATION = 500.0;
 
     public static ForesightConfig foresightConfig = new ForesightConfig(
         c -> {
@@ -210,6 +215,7 @@ public class Constants {
             c.naturalForwardDeceleration.set(27.418);
             c.naturalStrafeDeceleration.set(27.418);
             c.maxDecelerationConstraint.set(27.418);
+            c.maxAccelerationConstraint.set(MAX_ACCELERATION);
 
             Controller primaryTranslationalForward = Controller.proportional(TRANSLATIONAL_KP);
             Controller secondaryTranslationalForward = Controller.proportional(SECONDARY_TRANSLATIONAL_KP);
