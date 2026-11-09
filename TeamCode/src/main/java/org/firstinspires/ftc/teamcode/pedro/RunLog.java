@@ -83,7 +83,9 @@ public class RunLog {
             // tgtVel, remain, braking: Foresight target velocity, remaining distance, braking flag.
             sb.append(",vx,vy,omegaDeg,tvx,tvy,predX,predY,predHdeg")
               .append(",transVx,transVy,driveVx,driveVy,nffX,nffY,headPow,headFf")
-              .append(",tgtVel,remain,braking");
+              .append(",tgtVel,remain,braking")
+              // badReads: running count of all-zero Pinpoint reads GuardedLocalizer dropped.
+              .append(",badReads");
             out.write(sb.toString());
             out.newLine();
         } catch (IOException e) {
@@ -156,6 +158,12 @@ public class RunLog {
             sb.append(",,,,,,,,,,,,,,");
         }
 
+        // Running count of all-zero Pinpoint reads GuardedLocalizer dropped (blank if not guarded).
+        sb.append(',');
+        if (follower.localizer instanceof GuardedLocalizer) {
+            sb.append(((GuardedLocalizer) follower.localizer).rejectedReads);
+        }
+
         try {
             out.write(sb.toString());
             out.newLine();
@@ -205,6 +213,12 @@ public class RunLog {
         }
         configVars("swerve.", Constants.driveConfig, lines);
         configVars("pinpoint.", Constants.localizerConfig, lines);
+        // 2026-11-08: voltage compensation is off, so every power is a fraction of this. Read once
+        // at the start of the run; a battery swap otherwise looks like a tuning change.
+        HamSwerve s = swerve();
+        if (s != null) {
+            lines.add("battery.voltageAtStart=" + f(s.getBatteryVoltage()));
+        }
         Collections.sort(lines);
         for (String line : lines) {
             out.write("# ");

@@ -113,7 +113,8 @@ public class HamSwerve implements Drivetrain {
 
     @Override
     public void drive(DrivePowers powers, boolean manual) {
-        if (manual && config.manualBrakeMode.get())
+        // TeleOp uses manualBrakeMode; auto, the tests and the Foresight tuners use AUTO_BRAKE_MODE.
+        if (manual ? config.manualBrakeMode.get() : Constants.AUTO_BRAKE_MODE)
             setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         else
             setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -315,6 +316,11 @@ public class HamSwerve implements Drivetrain {
             else
                 pod.setToFloat();
         }
+    }
+
+    /** Battery voltage now (one hub read). RunLog writes it into each log's settings header. */
+    public double getBatteryVoltage() {
+        return voltageSensor.getVoltage();
     }
 
     /**
