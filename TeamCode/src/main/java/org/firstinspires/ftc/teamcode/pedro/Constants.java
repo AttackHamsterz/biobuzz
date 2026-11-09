@@ -201,6 +201,20 @@ public class Constants {
     // acceleration: coast() asks for feedforward at (speed + this x loop dt), and the drive responds
     // in ~0.15-0.25 s, so at ~44 Hz the real ramp is roughly 1/9 of this (inferred; check the log).
     public static final double MAX_ACCELERATION = 500.0;
+    // 2026-11-08: what zero power does in auto, re-measured with AUTO_BRAKE_MODE (tuner stage 1 now
+    // commands zero power instead of stop(false), which always floated). Was 27.418 (coasting).
+    // Foresight sends exactly 0 power when it thinks the robot can coast to the end at this rate;
+    // with brakes on, the old value made that happen early (4-8% of path loops), a hard brake.
+    public static final double NATURAL_DECELERATION = 65.98954113877824;
+    // Profile used to slow down toward the end (the comfort knob; keep NATURAL_DECELERATION honest).
+    // 2026-11-08: 27.418 -> 20. With NATURAL_DECELERATION 66 and this at 27.4, Line legs got 26%
+    // faster (1.68 s) but path error rose 0.16 -> 0.43 in RMS and end braking toggled 20x (was 2):
+    // the robot arrived too fast. A gentler profile should slow it earlier and keep cruise speed.
+    public static final double MAX_DECELERATION = 20.0;
+    // 2026-11-08: Foresight brakeAggression, default 1.0. Higher = SOFTER: it divides the distance
+    // left when sizing the reverse push in the end-of-path braking (does not change when braking
+    // starts). At 1.0 the Line Test end braking toggled on/off 16-20x per run with decel 66.
+    public static final double BRAKE_AGGRESSION = 2.0;
 
     public static ForesightConfig foresightConfig = new ForesightConfig(
         c -> {
@@ -212,10 +226,11 @@ public class Constants {
             c.maxAchievableForwardVelocity.set(72.365);
             c.maxAchievableStrafeVelocity.set(72.365);
 
-            c.naturalForwardDeceleration.set(27.418);
-            c.naturalStrafeDeceleration.set(27.418);
-            c.maxDecelerationConstraint.set(27.418);
+            c.naturalForwardDeceleration.set(NATURAL_DECELERATION);
+            c.naturalStrafeDeceleration.set(NATURAL_DECELERATION);
+            c.maxDecelerationConstraint.set(MAX_DECELERATION);
             c.maxAccelerationConstraint.set(MAX_ACCELERATION);
+            c.brakeAggression.set(BRAKE_AGGRESSION);
 
             Controller primaryTranslationalForward = Controller.proportional(TRANSLATIONAL_KP);
             Controller secondaryTranslationalForward = Controller.proportional(SECONDARY_TRANSLATIONAL_KP);

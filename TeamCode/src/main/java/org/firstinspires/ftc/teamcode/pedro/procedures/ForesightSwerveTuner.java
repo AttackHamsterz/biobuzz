@@ -293,7 +293,11 @@ class ForwardDeceleration extends TuningOpMode<Double> {
                 previousTimeNano = System.nanoTime();
 
                 stopping = true;
-                drivetrain.stop(false);
+                // 2026-11-08: was drivetrain.stop(false), which always FLOATs (HamSwerve.stop ends
+                // in setToFloat), so this measured coasting even with AUTO_BRAKE_MODE on. Foresight
+                // treats naturalDeceleration as what zero power does in auto, and zero power now
+                // brakes. Command zero power the same way auto does (and every loop below).
+                drivetrain.drive(new DrivePowers(0, 0, 0), false);
             } else if (safetyTimer.seconds() > ForesightSwerveTuner.MAX_LOOP_SECONDS) {
                 drivetrain.stop(false);
                 throw new IllegalStateException("Deceleration: never reached " + velocity + " in/s within "
@@ -315,6 +319,7 @@ class ForwardDeceleration extends TuningOpMode<Double> {
                 throw new IllegalStateException("Deceleration: robot did not coast to a stop within "
                         + ForesightSwerveTuner.MAX_LOOP_SECONDS + " s.");
             }
+            drivetrain.drive(new DrivePowers(0, 0, 0), false);
             localizer.update();
             double currentVelocity = localizer.twist().toVector2D().x();
             long currentTimeNano = System.nanoTime();
