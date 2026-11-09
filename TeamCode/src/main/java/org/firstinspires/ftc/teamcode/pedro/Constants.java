@@ -201,20 +201,29 @@ public class Constants {
     // acceleration: coast() asks for feedforward at (speed + this x loop dt), and the drive responds
     // in ~0.15-0.25 s, so at ~44 Hz the real ramp is roughly 1/9 of this (inferred; check the log).
     public static final double MAX_ACCELERATION = 500.0;
-    // 2026-11-08: what zero power does in auto, re-measured with AUTO_BRAKE_MODE (tuner stage 1 now
-    // commands zero power instead of stop(false), which always floated). Was 27.418 (coasting).
-    // Foresight sends exactly 0 power when it thinks the robot can coast to the end at this rate;
-    // with brakes on, the old value made that happen early (4-8% of path loops), a hard brake.
-    public static final double NATURAL_DECELERATION = 65.98954113877824;
-    // Profile used to slow down toward the end (the comfort knob; keep NATURAL_DECELERATION honest).
-    // 2026-11-08: 27.418 -> 20. With NATURAL_DECELERATION 66 and this at 27.4, Line legs got 26%
-    // faster (1.68 s) but path error rose 0.16 -> 0.43 in RMS and end braking toggled 20x (was 2):
-    // the robot arrived too fast. A gentler profile should slow it earlier and keep cruise speed.
-    public static final double MAX_DECELERATION = 20.0;
-    // 2026-11-08: Foresight brakeAggression, default 1.0. Higher = SOFTER: it divides the distance
-    // left when sizing the reverse push in the end-of-path braking (does not change when braking
-    // starts). At 1.0 the Line Test end braking toggled on/off 16-20x per run with decel 66.
-    public static final double BRAKE_AGGRESSION = 2.0;
+    // Deceleration and end braking: the PRECISE tune (4bd0312 values), restored 2026-11-08 for
+    // autonomous. Judge changes here on the Point Test by time from leaving to settled at the
+    // target plus final settle error, not by path time.
+    //
+    // Tried and rolled back 2026-11-08 (42e2703, the "fast" build): NATURAL_DECELERATION 66.0,
+    // MAX_DECELERATION 20, BRAKE_AGGRESSION 2.0.
+    //   Line legs 2.27 -> 1.70 s, but RMS 0.16 -> 0.36 in. Curve legs 2.85 -> 2.28 s, RMS 1.5 -> 2.1 in.
+    //   Point Test holds settled in 0.61 s (was 0.23) with max error 0.66 in (was 0.22): about
+    //   0.30 s saved driving, 0.38 s lost settling, so point-to-point it was slower and 3x less accurate.
+    //   BRAKE_AGGRESSION 2.0 did not reduce the end-brake toggles (16 per Line Test run).
+    //   Not yet tried: 66 / 20 with BRAKE_AGGRESSION 1.0 on the Point Test.
+
+    // What zero power does in auto. 27.418 was measured COASTING (tuner stage 1 used stop(false),
+    // which always floats); with AUTO_BRAKE_MODE the fixed tuner measures 66.0. 27.418 is kept
+    // because it gave the best Point Test, even though it is wrong as physics: Foresight sends
+    // exactly 0 power when it thinks the robot can coast to the end at this rate, and with brakes
+    // on that happens early (4-8% of path loops), a hard brake.
+    public static final double NATURAL_DECELERATION = 27.418;
+    // Profile used to slow down toward the end (the comfort knob).
+    public static final double MAX_DECELERATION = 27.418;
+    // Foresight brakeAggression, default 1.0. Higher = SOFTER: it divides the distance left when
+    // sizing the reverse push in the end-of-path braking (does not change when braking starts).
+    public static final double BRAKE_AGGRESSION = 1.0;
 
     public static ForesightConfig foresightConfig = new ForesightConfig(
         c -> {
