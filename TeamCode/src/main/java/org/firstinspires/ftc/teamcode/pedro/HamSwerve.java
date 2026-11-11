@@ -73,6 +73,13 @@ public class HamSwerve implements Drivetrain {
         }
     }
 
+    // For RunLog
+    public List<SwervePod> getPods() { return pods; }
+    public double getLastForward() { return lastForward; }
+    public double getLastStrafe() { return lastStrafe; }
+    public double getLastRotation() { return lastRotation; }
+    public double getLastAvgScaling() { return lastAvgScaling; }
+
     @Override
     public Map<String, Object> debug() {
         Map<String, Object> map = new HashMap<>();
@@ -106,14 +113,23 @@ public class HamSwerve implements Drivetrain {
 
     @Override
     public void drive(DrivePowers powers, boolean manual) {
-        if (manual && config.manualBrakeMode.get())
+        // TeleOp uses manualBrakeMode; auto, the tests and the Foresight tuners use AUTO_BRAKE_MODE.
+        if (manual ? config.manualBrakeMode.get() : Constants.AUTO_BRAKE_MODE)
             setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         else
             setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        applyDrive(powers);
+        applyDrive(powers, manual);
     }
 
     public void applyDrive(DrivePowers powers) {
+        applyDrive(powers, true);
+    }
+
+    /**
+     * @param manual true for driver (TeleOp) input. Pedro's Follower passes false for path
+     *               following and hold, true for follower.manual() (checked in core 3.0.1).
+     */
+    public void applyDrive(DrivePowers powers, boolean manual) {
         if (powers == null) return;
 
         double forward = powers.forward();
@@ -159,6 +175,16 @@ public class HamSwerve implements Drivetrain {
         }
 
         avgScaling /= pods.size();
+
+        // Auto only: don't push until the pods have turned. Plain cos scaling still pushes ~70%
+        // with the pods 45 deg off, so near the target (low forward power, big steering swings) the
+        // robot shoves the wrong way while turning, overshoots, and the correction flips. Ramp
+        // power from 0 at AUTO_ALIGN_GATE_DEG of average pod error up to full at 0 deg. Pods can
+        // still reach any angle, so nothing stops the robot from reaching the target.
+        if (!manual) {
+            double gateCos = Math.cos(Math.toRadians(Constants.AUTO_ALIGN_GATE_DEG));
+            avgScaling = Range.clip((avgScaling - gateCos) / (1 - gateCos), 0, 1);
+        }
         lastAvgScaling = avgScaling;
 
         for (int podNum = 0; podNum < pods.size(); podNum++) {
@@ -290,6 +316,11 @@ public class HamSwerve implements Drivetrain {
             else
                 pod.setToFloat();
         }
+    }
+
+    /** Battery voltage now (one hub read). RunLog writes it into each log's settings header. */
+    public double getBatteryVoltage() {
+        return voltageSensor.getVoltage();
     }
 
     /**

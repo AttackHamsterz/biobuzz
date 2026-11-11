@@ -62,10 +62,10 @@ public class Eye extends RobotPart {
 
     public Eye(StandardSetupOpMode ssom) {
         this.ssom = ssom;
-        this.mode = Mode.NONE;
+        this.mode = Mode.FIND_HIVE;
         // Setup limelight
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.setPollRateHz(150); // This sets how often we ask Limelight for data (100 times per second)
+        limelight.setPollRateHz(100); // This sets how often we ask Limelight for data
         this.hives = new ArrayList<Hive>();
         this.hives.add(new Hive("blue", "blue audience", audienceBlueFiducials));
         this.hives.add(new Hive("blue", "blue scoring", scoringBlueFiducials));
@@ -116,9 +116,7 @@ public class Eye extends RobotPart {
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
                     for(LLResultTypes.FiducialResult fiducial : fiducials) {
-                       /* Pose3D targetRobotSpace = resultInUse.getTargetPoseRobotSpace();*/
-
-                        Integer id = fiducial.getFiducialId();
+                        int id = fiducial.getFiducialId();
                         Position fiducialResult = fiducial.getTargetPoseRobotSpace().getPosition();
 
                         for (Hive hive : this.hives) {
@@ -150,7 +148,7 @@ public class Eye extends RobotPart {
                 }
             }
         }
-        if (mode == Mode.LOCATE_POLLEN) {
+        else if (mode == Mode.LOCATE_POLLEN) {
 
         }
         // Cleanup
@@ -164,9 +162,9 @@ public class Eye extends RobotPart {
             for (Hive hive : this.hives) {
                 telemetry.addData(hive.name + " isUp: ", hive.isUp);
                 for (Fiducial fiducial : hive.fiducials) {
-                    telemetry.addData(hive.name + " " + fiducial.id + " x:", fiducial.x );
-                    telemetry.addData(hive.name + " " + fiducial.id + " y:", fiducial.y );
-                    telemetry.addData(hive.name + " " + fiducial.id + " z:", fiducial.z );
+                    telemetry.addData("  " + fiducial.id + " x:", fiducial.x );
+                    telemetry.addData("  " + fiducial.id + " y:", fiducial.y );
+                    telemetry.addData("  " + fiducial.id + " z:", fiducial.z );
                 }
             }
         }

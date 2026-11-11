@@ -46,7 +46,9 @@ public class Tuning {
     @Tuner
     public static Procedure tests() {
         return new Tests(Tuning::settledSwerve,
-                (hardwareMap -> new PinpointLocalizer(hardwareMap, Constants.localizerConfig)), () -> new Foresight(Constants.foresightConfig));
+                // Guarded like Constants.create(), so the tests see the same pose auto does.
+                (hardwareMap -> new GuardedLocalizer(new PinpointLocalizer(hardwareMap, Constants.localizerConfig))),
+                () -> new Foresight(Constants.foresightConfig));
     }
 
     /**

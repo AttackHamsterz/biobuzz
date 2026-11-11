@@ -13,13 +13,16 @@ import com.pedropathing.tuning.autotune.Inputs;
 import com.pedropathing.tuning.autotune.Procedure;
 import com.pedropathing.tuning.autotune.TuningOpMode;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
+import org.firstinspires.ftc.teamcode.pedro.RunLog;
 
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -32,6 +35,8 @@ public class Tests extends Procedure {
         HOLD,
         @DisplayName("Line Test")
         LINE,
+        @DisplayName("Point Test")
+        POINT,
         @DisplayName("Curve Test")
         CURVED,
         @DisplayName("Interpolation Test")
@@ -89,6 +94,11 @@ public class Tests extends Procedure {
                 if (!algorithm)
                     throw new IllegalArgumentException("Algorithm is required for Hold Test.");
                 completed = runOpMode(new TestsLine(followerFunction, distance.get()));
+                break;
+            case POINT:
+                if (!algorithm)
+                    throw new IllegalArgumentException("Algorithm is required for Point Test.");
+                completed = runOpMode(new TestsPoint(followerFunction));
                 break;
             case CURVED:
                 if (!algorithm)
@@ -165,19 +175,105 @@ class TestsLine extends TuningOpMode<Boolean> {
         Path path1 = line(Pose.zero(), new Pose(distance,0, 0)).constant(0);
         Path path2 = line(new Pose(distance,0, 0), Pose.zero()).constant(0);
 
+        // Bulk caching, same as StandardSetupOpMode (auto/TeleOp). Without it every pod encoder read
+        // is its own hub transaction and the loop ran ~22 Hz (2026-11-06 log).
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
         waitForStart();
+        // Per-loop CSV in /sdcard/FIRST/pedrologs for tuning (leg 1 = out, 2 = back).
+        RunLog log = new RunLog(follower, "line");
+        telemetry.addData("Logging to", log.path);
+        telemetry.update();
         follower.follow(path1);
 
-        while (opModeIsActive()) {
-            follower.update();
-            if (follower.atParametricEnd()) {
-                if (forward) {
-                    follower.follow(path2);
-                } else {
-                    follower.follow(path1);
+        try {
+            while (opModeIsActive()) {
+                for (LynxModule hub : hubs) {
+                    hub.clearBulkCache();
                 }
-                forward = !forward;
+                follower.update();
+                log.row(forward ? 1 : 2);
+                if (follower.atParametricEnd()) {
+                    if (forward) {
+                        follower.follow(path2);
+                    } else {
+                        follower.follow(path1);
+                    }
+                    forward = !forward;
+                }
             }
+        } finally {
+            log.close();
+        }
+        return true;
+    }
+}
+
+/**
+ * Drive 48 in out, HOLD the end point for HOLD_SECONDS, drive back, hold the start, repeat.
+ * Unlike the Line Test (which turns around at atParametricEnd, ~1.2 in short), this shows where
+ * the robot actually settles: the thing auto depends on. RunLog legs: 1 = out, 3 = holding at
+ * the far end, 2 = back, 4 = holding at the start. Added 2026-11-08.
+ */
+class TestsPoint extends TuningOpMode<Boolean> {
+    static final double DISTANCE = 48;
+    static final double HOLD_SECONDS = 2.0;
+    Function<HardwareMap, Follower> followerFunction;
+
+    public TestsPoint(Function<HardwareMap, Follower> followerFunction) {
+        super("Point Test", "Drives to a point and holds it, to measure where the robot settles.", true);
+        this.followerFunction = followerFunction;
+    }
+
+    @Override
+    public Boolean runTuningOpMode() throws InterruptedException {
+        Follower follower = followerFunction.apply(hardwareMap);
+        follower.setPose(Pose.zero());
+
+        Pose start = Pose.zero();
+        Pose end = new Pose(DISTANCE, 0, 0);
+        Path out = line(start, end).constant(0);
+        Path back = line(end, start).constant(0);
+
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
+        waitForStart();
+        RunLog log = new RunLog(follower, "point");
+        follower.follow(out);
+        int leg = 1;
+        long holdStartNs = 0;
+
+        try {
+            while (opModeIsActive()) {
+                for (LynxModule hub : hubs) {
+                    hub.clearBulkCache();
+                }
+                follower.update();
+                log.row(leg);
+
+                if ((leg == 1 || leg == 2) && follower.atParametricEnd()) {
+                    follower.hold(leg == 1 ? end : start);
+                    leg = (leg == 1) ? 3 : 4;
+                    holdStartNs = System.nanoTime();
+                } else if ((leg == 3 || leg == 4) && System.nanoTime() - holdStartNs > HOLD_SECONDS * 1e9) {
+                    Pose p = follower.pose();
+                    Pose target = (leg == 3) ? end : start;
+                    telemetry.addData(leg == 3 ? "Settled at far end" : "Settled at start",
+                            "dx %.2f  dy %.2f  dh %.1f deg", p.x() - target.x(), p.y() - target.y(),
+                            Math.toDegrees(p.heading() - target.heading()));
+                    telemetry.update();
+                    follower.follow(leg == 3 ? back : out);
+                    leg = (leg == 3) ? 2 : 1;
+                }
+            }
+        } finally {
+            log.close();
         }
         return true;
     }
@@ -204,19 +300,34 @@ class TestsCurve extends TuningOpMode<Boolean> {
         Path path1 = curve(Pose.zero(), new Pose(distance + 0,0), new Pose(distance,distance)).tangent();
         Path path2 = curve(new Pose(distance,distance), new Pose(distance,0), Pose.zero()).tangent();
 
+        // Bulk caching + per-loop RunLog, same as the Line Test (legs 1 = path1, 2 = path2).
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
         waitForStart();
+        RunLog log = new RunLog(follower, "curve");
         follower.follow(path1);
 
-        while (opModeIsActive()) {
-            follower.update();
-            if (follower.atParametricEnd()) {
-                if (forward) {
-                    follower.follow(path2);
-                } else {
-                    follower.follow(path1);
+        try {
+            while (opModeIsActive()) {
+                for (LynxModule hub : hubs) {
+                    hub.clearBulkCache();
                 }
-                forward = !forward;
+                follower.update();
+                log.row(forward ? 1 : 2);
+                if (follower.atParametricEnd()) {
+                    if (forward) {
+                        follower.follow(path2);
+                    } else {
+                        follower.follow(path1);
+                    }
+                    forward = !forward;
+                }
             }
+        } finally {
+            log.close();
         }
         return true;
     }
@@ -243,19 +354,34 @@ class TestsInterpolation extends TuningOpMode<Boolean> {
         Path path1 = curve(Pose.zero(), new Pose(distance + 0,0), new Pose(distance,distance)).heading((curve, t) -> Math.PI);
         Path path2 = curve(new Pose(distance,distance), new Pose(distance,0), Pose.zero()).heading(Interpolator.piecewise().until(0.5, Interpolator.tangent).until(1.0, Interpolator.constant(0)));
 
+        // Bulk caching + per-loop RunLog, same as the Line Test (legs 1 = path1, 2 = path2).
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
         waitForStart();
+        RunLog log = new RunLog(follower, "interp");
         follower.follow(path1);
 
-        while (opModeIsActive()) {
-            follower.update();
-            if (follower.atParametricEnd()) {
-                if (forward) {
-                    follower.follow(path2);
-                } else {
-                    follower.follow(path1);
+        try {
+            while (opModeIsActive()) {
+                for (LynxModule hub : hubs) {
+                    hub.clearBulkCache();
                 }
-                forward = !forward;
+                follower.update();
+                log.row(forward ? 1 : 2);
+                if (follower.atParametricEnd()) {
+                    if (forward) {
+                        follower.follow(path2);
+                    } else {
+                        follower.follow(path1);
+                    }
+                    forward = !forward;
+                }
             }
+        } finally {
+            log.close();
         }
         return true;
     }
