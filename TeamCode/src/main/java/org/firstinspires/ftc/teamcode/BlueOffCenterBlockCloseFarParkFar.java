@@ -6,11 +6,11 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 public class BlueOffCenterBlockCloseFarParkFar extends BioBuzzAutoOpMode {
     public BlueOffCenterBlockCloseFarParkFar() {
         super(
-                BLUE |
-                        OFF_CENTER_START |
-                        BLOCK_FIRST_DROP |
-                        VISIT_CLOSE_FLOWER |
-                        VISIT_FAR_FLOWER |
-                        FAR_PARK);
+            BLUE |
+            OFF_CENTER_START |
+            BLOCK_FIRST_DROP |
+            VISIT_CLOSE_FLOWER |
+            VISIT_FAR_FLOWER |
+            FAR_PARK);
     }
 }

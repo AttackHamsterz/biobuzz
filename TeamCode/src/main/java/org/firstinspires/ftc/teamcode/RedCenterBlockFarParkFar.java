@@ -8,9 +8,10 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 public class RedCenterBlockFarParkFar extends BioBuzzAutoOpMode {
     public RedCenterBlockFarParkFar() {
         super(
-                CENTER_START |
-                        BLOCK_FIRST_DROP |
-                        VISIT_FAR_FLOWER |
-                        FAR_PARK);
+            RED |
+            CENTER_START |
+            BLOCK_FIRST_DROP |
+            VISIT_FAR_FLOWER |
+            FAR_PARK);
     }
 }

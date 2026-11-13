@@ -35,6 +35,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     public static final long SHOOT_SECOND = (1L << 6);
     public static final long FAR_PARK = (1L << 7);
     public static final long BLUE = (1L << 62);
+    public static final long RED = 0;
 
     private final PoseFactory poseFactory = PoseFactory.degrees();
     private final long config;
