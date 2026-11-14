@@ -35,6 +35,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     public static final long VISIT_FAR_FLOWER = (1L << 5);
     public static final long SHOOT_SECOND = (1L << 6);
     public static final long FAR_PARK = (1L << 7);
+    public static final long VIA_SAFE_TUNNEL = (1L << 8);
     public static final long BLUE = (1L << 62);
     public static final long RED = 0;
 
@@ -79,6 +80,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private Pose closeFlowerPose;
     private Pose farFlowerPose;
     private Pose farFlowerBackoffPose;
+    private Pose safeTunnelPose;
     private Pose parkPose;
 
     public BioBuzzAutoOpMode(long config) {
@@ -115,6 +117,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         return (FAR_PARK & config) != 0;
     }
 
+    private boolean viaSafeTunnel() {
+        return (VIA_SAFE_TUNNEL & config) != 0;
+    }
+
     // Red is on the left side when facing from the audience and contains 0,0
     // Blue is on the right side when facing from the audience and contains (144, 144)
     @Override
@@ -139,6 +145,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double closeFlowerPoseY = 46.0;
         final double closeFlowerPoseAngle = 180.0;
 
+        final double safeTunnelPoseX = 62.0;
+        final double safeTunnelPoseY = 106.0;
+        final double safeTunnelPoseAngle = 90.0;
+
         final double farFlowerPoseX = 49.0;
         final double farFlowerPoseY = 125.5;
         final double farFlowerPoseAngle = 90.0;
@@ -160,6 +170,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         }
 
         closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
+        safeTunnelPose = poseFactory.of(safeTunnelPoseX, safeTunnelPoseY, safeTunnelPoseAngle);
         farFlowerPose = poseFactory.of(farFlowerPoseX, farFlowerPoseY, farFlowerPoseAngle);
         // Straight back from the far flower, opposite the way the robot faces there
         farFlowerBackoffPose = poseFactory.of(
@@ -194,7 +205,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     // not counted, so the same step has the same number in every config:
     //   1 = start delay, 3 = block (drive + wait), 4 = garden, 5 = close flower,
     //   6 = far flower, 7 = park, 8 = zeroing after park, 9 = zeroing forced by the timer,
-    //   10 = backing off the far flower
+    //   10 = backing off the far flower, 11 = safe tunnel
     @Override
     public void buildSchedule() {
         Command driveToBlock = lazy(() -> {
@@ -227,6 +238,13 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             Path dynamicPath = line(currentPose, parkPose).linear(currentPose, parkPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
+        // Waypoint: passes straight through, no settle or pause
+        Command driveToSafeTunnel = lazy(() -> {
+            step = 11;
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, safeTunnelPose).linear(currentPose, safeTunnelPose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
         Command driveToGarden = lazy(() -> {
             step = 4;
             Pose currentPose = motion.follower.pose();
@@ -255,6 +273,9 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                         // Wait for hive to tip, either timer or fiducial reading, and wait 2 secs to block
                         waitMs(blockWaitMs)),
                 nothing);
+        Command maybeSafeTunnel = conditional(this::viaSafeTunnel,
+                driveToSafeTunnel,
+                nothing);
         Command maybeGarden = conditional(this::visitGarden,
                 driveToGarden,
                 nothing);
@@ -278,6 +299,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                                 maybeBlock,
                                 maybeGarden,
                                 maybeCloseFlower,
+                                maybeSafeTunnel,
                                 maybeFarFlower,
                                 driveToPark,
                                 // Settle before zeroing: zeroing stops the hold, so any error left here stays
