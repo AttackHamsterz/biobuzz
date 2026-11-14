@@ -6,6 +6,7 @@ import static com.pedropathing.ivy.commands.Commands.conditional;
 import static com.pedropathing.ivy.commands.Commands.instant;
 import static com.pedropathing.ivy.commands.Commands.lazy;
 import static com.pedropathing.ivy.commands.Commands.waitMs;
+import static com.pedropathing.ivy.commands.Commands.waitUntil;
 import static com.pedropathing.ivy.groups.Groups.parallel;
 import static com.pedropathing.ivy.groups.Groups.race;
 import static com.pedropathing.ivy.groups.Groups.repeat;
@@ -49,10 +50,35 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     protected long startDelayMs = 0;    // wait before moving, to stay clear of a partner
     protected long blockWaitMs = 3000;  // wait at the block pose for the hive to tip
 
+    // Settle check: how close counts as "arrived" before a mechanism acts. Pedro's follow()
+    // finishes at the end of the path, while the robot is still moving, so steps that need the
+    // robot stopped and aimed wait on this. Must stay above the hold deadbands (about 2.8 deg
+    // heading, 0.73 in strafe) or it will always run to the timeout.
+    protected double settleInches = 1.0;
+    protected double settleDegrees = 4.0;
+    protected long settleTimeoutMs = 1000;
+
+    // Diagnostic pause at each point (close flower, far flower, park), so positions can be
+    // checked on the field and the log has a still pose at each one. The robot holds the pose
+    // while it waits. Set to 0 for match runs.
+    protected long pointPauseMs = 2000;
+
+    // How far along each drive the turn finishes (0-1). Pedro turns over this fraction of the
+    // path, then holds the final heading, so the robot arrives already aimed instead of still
+    // turning. 1.0 spreads the turn over the whole path (the old behavior); lower turns faster.
+    protected double turnEndFraction = 0.8;
+
+    // How far to back straight off the far flower before turning toward park. The robot's front
+    // sits about 2 in from the flower there, and a rotated 18 in robot's corners reach 12.7 in
+    // from its center instead of 9, so turning in place swings them into the flower. Read in
+    // init(), where the back-off pose is built.
+    protected double farFlowerBackoffInches = 5.0;
+
     private Pose startPose;
     private Pose blockPose;
     private Pose closeFlowerPose;
     private Pose farFlowerPose;
+    private Pose farFlowerBackoffPose;
     private Pose parkPose;
 
     public BioBuzzAutoOpMode(long config) {
@@ -102,27 +128,27 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double offCenterStartPoseAngle = 90.0;
 
         final double centerBlockPoseX = 62.0;
-        final double centerBlockPoseY = 27.0;
-        final double centerBlockPoseAngle = 110.0;
+        final double centerBlockPoseY = 21.0;
+        final double centerBlockPoseAngle = 190.0;
 
         final double offCenterBlockPoseX = 38.0;
-        final double offCenterBlockPoseY = 27.0;
-        final double offCenterBlockPoseAngle = 70.0;
+        final double offCenterBlockPoseY = 21.0;
+        final double offCenterBlockPoseAngle = 170.0;
 
-        final double closeFlowerPoseX = 18.0;
-        final double closeFlowerPoseY = 48.0;
-        final double closeFlowerPoseAngle = 270.0;
+        final double closeFlowerPoseX = 14.5;
+        final double closeFlowerPoseY = 46.0;
+        final double closeFlowerPoseAngle = 180.0;
 
-        final double farFlowerPoseX = 49.5;
-        final double farFlowerPoseY = 126.0;
-        final double farFlowerPoseAngle = 180.0;
+        final double farFlowerPoseX = 49.0;
+        final double farFlowerPoseY = 125.5;
+        final double farFlowerPoseAngle = 90.0;
 
         final double farParkX = 15;
-        final double farParkY = 94.0;
+        final double farParkY = 122.0;
         final double farParkAngle = 270.0;
 
         final double closeParkX = 15;
-        final double closeParkY = 94.0;
+        final double closeParkY = 108.0;
         final double closeParkAngle = 270.0;
 
         if (offCenterStart()) {
@@ -135,6 +161,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
 
         closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
         farFlowerPose = poseFactory.of(farFlowerPoseX, farFlowerPoseY, farFlowerPoseAngle);
+        // Straight back from the far flower, opposite the way the robot faces there
+        farFlowerBackoffPose = poseFactory.of(
+                farFlowerPoseX - farFlowerBackoffInches * Math.cos(Math.toRadians(farFlowerPoseAngle)),
+                farFlowerPoseY - farFlowerBackoffInches * Math.sin(Math.toRadians(farFlowerPoseAngle)),
+                farFlowerPoseAngle);
 
         if (farPark()) {
             parkPose = poseFactory.of(farParkX, farParkY, farParkAngle);
@@ -146,31 +177,60 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         motion.follower.setPose(startPose);
     }
 
+    private boolean atPose(Pose target) {
+        Pose p = motion.follower.pose();
+        double dist = Math.hypot(p.x() - target.x(), p.y() - target.y());
+        double dh = Math.toDegrees(p.heading() - target.heading());
+        dh = ((dh + 180) % 360 + 360) % 360 - 180;   // wrap to -180..180
+        return dist <= settleInches && Math.abs(dh) <= settleDegrees;
+    }
+
+    // Wait until arrived, or the timeout, whichever comes first
+    private Command settleAt(Pose target) {
+        return race(waitUntil(() -> atPose(target)), waitMs(settleTimeoutMs));
+    }
+
+    // Step numbers, written to the run log's leg column (see AutoOpMode). Fixed per step,
+    // not counted, so the same step has the same number in every config:
+    //   1 = start delay, 3 = block (drive + wait), 4 = garden, 5 = close flower,
+    //   6 = far flower, 7 = park, 8 = zeroing after park, 9 = zeroing forced by the timer,
+    //   10 = backing off the far flower
     @Override
     public void buildSchedule() {
         Command driveToBlock = lazy(() -> {
+            step = 3;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, blockPose).linear(currentPose, blockPose);
+            Path dynamicPath = line(currentPose, blockPose).linear(currentPose, blockPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command driveToCloseFlower = lazy(() -> {
+            step = 5;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose);
+            Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command driveToFarFlower = lazy(() -> {
+            step = 6;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, farFlowerPose).linear(currentPose, farFlowerPose);
+            Path dynamicPath = line(currentPose, farFlowerPose).linear(currentPose, farFlowerPose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+        Command backOffFarFlower = lazy(() -> {
+            step = 10;
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, farFlowerBackoffPose).linear(currentPose, farFlowerBackoffPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command driveToPark = lazy(() -> {
+            step = 7;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, parkPose).linear(currentPose, parkPose);
+            Path dynamicPath = line(currentPose, parkPose).linear(currentPose, parkPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command driveToGarden = lazy(() -> {
+            step = 4;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose);
+            Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command nothing = instant(() -> {
@@ -181,8 +241,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 waitMs(ZERO_DURATION_MS));
         Command zeroAuto = sequential(
                 waitMs(ZERO_START_MS),
+                instant(() -> step = 9),
                 zeroSwerve);
-        Command startDelay = waitMs(startDelayMs);
+        Command startDelay = sequential(
+                instant(() -> step = 1),
+                waitMs(startDelayMs));
         Command maybeShoot = conditional(this::shootFirst,
                 startIntake,
                 nothing);
@@ -196,10 +259,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 driveToGarden,
                 nothing);
         Command maybeCloseFlower = conditional(this::visitCloseFlower,
-                driveToCloseFlower,
+                sequential(driveToCloseFlower, settleAt(closeFlowerPose), waitMs(pointPauseMs)),
                 nothing);
         Command maybeFarFlower = conditional(this::visitFarFlower,
-                driveToFarFlower,
+                sequential(driveToFarFlower, settleAt(farFlowerPose), waitMs(pointPauseMs),
+                        backOffFarFlower),
                 nothing);
 
         // The overall schedule
@@ -216,6 +280,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                                 maybeCloseFlower,
                                 maybeFarFlower,
                                 driveToPark,
+                                // Settle before zeroing: zeroing stops the hold, so any error left here stays
+                                settleAt(parkPose),
+                                waitMs(pointPauseMs),
+                                instant(() -> step = 8),
                                 zeroSwerve)));
     }
 }
