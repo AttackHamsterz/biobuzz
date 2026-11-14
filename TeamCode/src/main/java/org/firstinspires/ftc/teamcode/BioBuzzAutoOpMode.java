@@ -37,8 +37,17 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     public static final long BLUE = (1L << 62);
     public static final long RED = 0;
 
+    // Pods must be zeroed before auto ends (30 s)
+    private static final long ZERO_START_MS = 28000;
+    private static final long ZERO_DURATION_MS = 2000;
+
     private final PoseFactory poseFactory = PoseFactory.degrees();
     private final long config;
+
+    // Timings in ms. Read when start() builds the schedule, so anything that
+    // sets them during INIT (a subclass or a Driver Station selector) takes effect.
+    protected long startDelayMs = 0;    // wait before moving, to stay clear of a partner
+    protected long blockWaitMs = 3000;  // wait at the block pose for the hive to tip
 
     private Pose startPose;
     private Pose blockPose;
@@ -169,10 +178,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         Command startIntake = instant(() -> intake.setPower(1.0));
         Command stopIntake = instant(() -> intake.setPower(0.0));
         Command zeroSwerve = race(repeat(instant(() -> ((HamFollower) motion.follower).zero()), 1000),
-                waitMs(2000));
+                waitMs(ZERO_DURATION_MS));
         Command zeroAuto = sequential(
-                waitMs(28000),
+                waitMs(ZERO_START_MS),
                 zeroSwerve);
+        Command startDelay = waitMs(startDelayMs);
         Command maybeShoot = conditional(this::shootFirst,
                 startIntake,
                 nothing);
@@ -180,7 +190,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 sequential(
                         parallel(driveToBlock, startIntake),
                         // Wait for hive to tip, either timer or fiducial reading, and wait 2 secs to block
-                        waitMs(3000)),
+                        waitMs(blockWaitMs)),
                 nothing);
         Command maybeGarden = conditional(this::visitGarden,
                 driveToGarden,
@@ -199,6 +209,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                         zeroAuto,
                         // Normal schedule
                         sequential(
+                                startDelay,
                                 maybeShoot,
                                 maybeBlock,
                                 maybeGarden,

@@ -107,12 +107,12 @@ public class Eye extends RobotPart {
 
         if (mode == Mode.FIND_HIVE) {
             resultInUse = limelight.getLatestResult();
-            Pose3D botPose = resultInUse.getBotpose();
-            YawPitchRollAngles llOrientation = botPose.getOrientation();
-            Position llPosition = botPose.getPosition();
 
-            
             if (resultInUse != null) {
+                Pose3D botPose = resultInUse.getBotpose();
+                YawPitchRollAngles llOrientation = botPose.getOrientation();
+                Position llPosition = botPose.getPosition();
+
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
                     for(LLResultTypes.FiducialResult fiducial : fiducials) {
