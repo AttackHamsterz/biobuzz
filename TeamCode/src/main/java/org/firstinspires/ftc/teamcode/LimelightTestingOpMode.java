@@ -19,12 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 public class LimelightTestingOpMode extends StandardSetupOpMode {
 
-
-    protected List<LynxModule> allHubs;
-    protected final ArrayList<Map.Entry<RobotPart, Integer>> partsList = new ArrayList<>();
-    private ScheduledExecutorService threadPool;
     private Eye eye;
-
 
     @Override
     public void init() {
@@ -36,27 +31,25 @@ public class LimelightTestingOpMode extends StandardSetupOpMode {
             hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
         eye= new Eye(this);
+        partsList.add(Map.entry(eye, 20));
 
-    }
-
-    @Override
-    public void start() {
-        // Start parts
+        // Init parts
         for (Map.Entry<RobotPart, Integer> entry : partsList) {
-            entry.getKey().start();
+            entry.getKey().init();
         }
 
-        // Launch the robot part loops
-        for (Map.Entry<RobotPart, Integer> entry : partsList) {
-            threadPool.scheduleWithFixedDelay(entry.getKey()::loop, 0, entry.getValue(), TimeUnit.MILLISECONDS);
-        }
+        // Setup the thread pool
+        threadPool = Executors.newScheduledThreadPool(partsList.size());
     }
 
-    @Override
-    public void loop() {
-        // Clear cache on each loop, speeds up ic2/analog/digital device queries
-        for (LynxModule hub : allHubs) {
-            hub.clearBulkCache();
+    @Override public void loop() {
+        // Ensure ssom loop is called
+        super.loop();
+
+        // Update telemetry
+        if(RobotPart.DEBUG != 0) {
+            super.partsList.forEach(part -> part.getKey().getTelemetry(telemetry));
+            if (!super.partsList.isEmpty()) telemetry.update();
         }
     }
 }

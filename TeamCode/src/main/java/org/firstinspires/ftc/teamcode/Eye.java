@@ -26,8 +26,8 @@ public class Eye extends RobotPart {
     private final List<Integer> blueFiducials = Arrays.asList(38, 39, 40, 41, 42, 43, 44, 45);
     private List<Integer> audienceBlueFiducials = Arrays.asList(38,39,40,41);
     private List<Integer> scoringBlueFiducials = Arrays.asList(42,43,44,45);
-    private List<Integer> audienceRedFiducials = Arrays.asList(30,31,32,33);
-    private List<Integer> scoringRedFiducials = Arrays.asList(34,35,36,37);
+    private List<Integer> audienceRedFiducials = Arrays.asList(34,35,36,37);
+    private List<Integer> scoringRedFiducials = Arrays.asList(33,32,31,30);
     public List<Hive> hives;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
