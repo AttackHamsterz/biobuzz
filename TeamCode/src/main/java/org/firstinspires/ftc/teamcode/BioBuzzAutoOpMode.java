@@ -80,6 +80,12 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private Pose closeFlowerPose;
     private Pose farFlowerPose;
     private Pose farFlowerBackoffPose;
+    private Pose safeOnePose;
+    private Pose safeTwoPose;
+    private Pose safeThreePose;
+    private Pose safeFourPose;
+    private Pose shootClosePose;
+    private Pose shootFarPose;
     private Pose safeTunnelPose;
     private Pose parkPose;
 
@@ -145,13 +151,33 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double closeFlowerPoseY = 46.0;
         final double closeFlowerPoseAngle = 180.0;
 
+        final double farFlowerPoseX = 49.0;
+        final double farFlowerPoseY = 125.5;
+        final double farFlowerPoseAngle = 90.0;
+
+        final double shootLeftPoseX = 57.0;
+        final double shootLeftPoseY = 10.0;
+        final double shootLeftPoseAngle = 90.0;
+
+        final double shootRightPoseX = 35.0;
+        final double shootRightPoseY = 10.0;
+        final double shootRightPoseAngle = 90.0;
+
+        final double safeScoringTunnelPoseX = 35.0;
+        final double safeScoringTunnelPoseY = 106.0;
+        final double safeScoringTunnelPoseAngle = 90.0;
+        
         final double safeTunnelPoseX = 62.0;
         final double safeTunnelPoseY = 106.0;
         final double safeTunnelPoseAngle = 90.0;
 
-        final double farFlowerPoseX = 49.0;
-        final double farFlowerPoseY = 125.5;
-        final double farFlowerPoseAngle = 90.0;
+        final double safeScoringOutsidePoseX = 35.0;
+        final double safeScoringOutsidePoseY = 35.0;
+        final double safeScoringOutsideAngle = 90.0;
+
+        final double safeAudienceOutsidePoseX = 35.0;
+        final double safeAudienceOutsidePoseY = 106.0;
+        final double safeAudienceOutsideAngle = 90.0;
 
         final double farParkX = 15;
         final double farParkY = 122.0;
