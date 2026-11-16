@@ -64,8 +64,8 @@ public class Intake extends RobotPart{
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 8) != 0){
-            //telemetry.addData("Intake Motor Power", intakeMotor.getPower());
+            telemetry.addData("Nectar Motor Power", nectarMotor.getPower());
+            telemetry.addData("Pollen motor power",pollenMotor.getPower());
         }
-
     }
 }
