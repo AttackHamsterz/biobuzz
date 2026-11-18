@@ -1,12 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-
-
 import com.qualcomm.robotcore.hardware.Servo;
 
 public class BallStopper extends RobotPart {
-
 
     public Servo ballServo = null;
 
@@ -17,13 +14,9 @@ public class BallStopper extends RobotPart {
 
     private static final double POLLEN_NECTAR_OPEN = 1.00;
 
-
-
-
     public BallStopper(StandardSetupOpMode ssom) {
         this.ssom = ssom;
-
-        ballServo = ssom.hardwareMap.get(Servo.class, "ball_stop");
+        ballServo = ssom.hardwareMap.get(Servo.class, "ballStop");
         ballServo.setPosition(ALL_CLOSED);
     }
 
@@ -41,54 +34,44 @@ public class BallStopper extends RobotPart {
     public void loop() {
         if (!ssom.ignoreGamepad)
         {
+            // The drive can press both launch buttons or just one
+            // The code will select the closest correct position for the cam and set it
             if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper)
             {
-
-                if  (ballServo.getPosition() < ALL_CLOSED) {
-                    ballServo.setPosition((NECTAR_POLLEN_OPEN));// 0.0
-                }
+                if  (ballServo.getPosition() < ALL_CLOSED)
+                    ballServo.setPosition((NECTAR_POLLEN_OPEN));
                 else
-                {
-                    ballServo.setPosition((POLLEN_NECTAR_OPEN));// 1.00
-                }
-
+                    ballServo.setPosition((POLLEN_NECTAR_OPEN));
             }
             else if (this.ssom.gamepad1.right_bumper)
-            {
-                ballServo.setPosition(POLLEN_OPEN); // 0.78
-            }
+                ballServo.setPosition(NECTAR_OPEN);
             else if (this.ssom.gamepad1.left_bumper)
-            {
-                ballServo.setPosition(NECTAR_OPEN); // 0.25
-
-            }
-            else {
-                ballServo.setPosition((ALL_CLOSED)); // 0.5
-            }
-          /*   if (this.ssom.gamepad1.right_trigger_pressed)
-            {
                 ballServo.setPosition(POLLEN_OPEN);
-            }
-             else {
-                 ballServo.setPosition((POSITION_CLOSED));//Release the ball
-             }
-             if (this.ssom.gamepad1.left_trigger_pressed)
-            {
-                ballServo.setPosition(POLLEN_OPEN);
-            }
-            else {
-                ballServo.setPosition(POSITION_CLOSED);
-            }*/
+            else
+                ballServo.setPosition((ALL_CLOSED));
         }
     }
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
-
+        if((DEBUG & 2) != 0){
+            telemetry.addData("Ball Servo Position", ballServo.getPosition());
+        }
     }
 
-    public void Stop()
-    {
+    public void allowPollen(){
+        ballServo.setPosition(POLLEN_OPEN);
+    }
 
+    public void allowNectar(){
+        ballServo.setPosition(NECTAR_OPEN);
+    }
+
+    public void allowAll(){
+        ballServo.setPosition(POLLEN_NECTAR_OPEN);
+    }
+
+    public void stopAll(){
+        ballServo.setPosition(ALL_CLOSED);
     }
 }

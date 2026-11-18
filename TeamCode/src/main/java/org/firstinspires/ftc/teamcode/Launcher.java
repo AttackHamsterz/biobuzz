@@ -274,7 +274,7 @@ public class Launcher extends RobotPart{
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
-        if((DEBUG & 2) != 0) {
+        if((DEBUG & 16) != 0) {
             telemetry.addData("rightTrigger", ssom.gamepad1.right_trigger);
             telemetry.addData("targetLaunchAngle", launchAngleDegrees);
             telemetry.addData("launchAngle", getLaunchAngleDegrees());

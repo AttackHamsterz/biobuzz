@@ -9,11 +9,10 @@ public abstract class RobotPart {
     // DEBUG drives telemetry output
     // Set bit positions to enable disable outputs
     //    1 - Motion
-    //    2 - BallLifter
+    //    2 - BallStopper
     //    4 - Eye
     //    8 - Intake
-    //   16 - Elevator
-    //   32 - Launcher
+    //   16 - Launcher
     //   So to dump Motion, Eye and Intake: 0b00001101 -or- 1+4+8
     public static final int DEBUG = 4;
 

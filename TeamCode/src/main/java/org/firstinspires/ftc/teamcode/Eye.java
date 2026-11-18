@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 public class Eye extends RobotPart {
     //private static final double CLOSE_ENOUGH_DEGREES = 6.0;
+    private final Servo camServo;
     private final Limelight3A limelight;
     private final Mode mode;
     private LLResult resultInUse;
@@ -63,6 +65,10 @@ public class Eye extends RobotPart {
     public Eye(StandardSetupOpMode ssom) {
         this.ssom = ssom;
         this.mode = Mode.FIND_HIVE;
+
+        // Setup camera servo
+        camServo = ssom.hardwareMap.get(Servo.class, "camServo");
+
         // Setup limelight
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data
@@ -87,6 +93,7 @@ public class Eye extends RobotPart {
 
     @Override
     public void init() {
+        camServo.setPosition(0.5);
     }
 
     @Override
