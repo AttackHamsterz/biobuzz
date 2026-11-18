@@ -88,6 +88,9 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private Pose shootFarPose;
     private Pose safeTunnelPose;
     private Pose parkPose;
+    private double firstShotAngleDegrees;
+    private double firstShotDistance;
+
 
     public BioBuzzAutoOpMode(long config) {
         this.ignoreGamepad = true;
@@ -152,7 +155,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double closeFlowerPoseAngle = 180.0;
 
         final double farFlowerPoseX = 49.0;
-        final double farFlowerPoseY = 125.5;
+        final double farFlowerPoseY = 126;
         final double farFlowerPoseAngle = 90.0;
 
         final double shootLeftPoseX = 57.0;
@@ -190,10 +193,16 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         if (offCenterStart()) {
             startPose = poseFactory.of(offCenterStartPoseX, offCenterStartPoseY, offCenterStartPoseAngle);
             blockPose = poseFactory.of(offCenterBlockPoseX, offCenterBlockPoseY, offCenterBlockPoseAngle);
+            firstShotAngleDegrees = -10;
+            firstShotDistance = 62;
         } else {
             startPose = poseFactory.of(centerStartPoseX, centerStartPoseY, centerStartPoseAngle);
             blockPose = poseFactory.of(centerBlockPoseX, centerBlockPoseY, centerBlockPoseAngle);
+            firstShotAngleDegrees = 5;
+            firstShotDistance = 56;
         }
+
+
 
         closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
         safeTunnelPose = poseFactory.of(safeTunnelPoseX, safeTunnelPoseY, safeTunnelPoseAngle);
@@ -281,6 +290,16 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         });
         Command startIntake = instant(() -> intake.setPower(1.0));
         Command stopIntake = instant(() -> intake.setPower(0.0));
+        Command startFlywheel = instant(() -> launcher.setRPMFromDistance(firstShotDistance,0,0));
+        Command standbyFlywheel = instant(() -> launcher.setRPMFromDistance(20,0,0));
+        Command alignTurret = instant(() -> launcher.setLaunchAngleDegrees(firstShotAngleDegrees));
+        Command allowPollen = instant(() -> ballStopper.allowPollen());
+        Command allowNectar = instant(() -> ballStopper.allowNectar());
+        Command allowAll = instant(() -> ballStopper.allowAll());
+        Command runLauncher = parallel(startFlywheel, alignTurret).until(() -> launcher.launchReady());
+        Command launchPollen = sequential(runLauncher, allowPollen, waitMs(3000));
+        Command launchNectar = sequential(runLauncher, allowNectar, waitMs(3000));
+        Command launchAll = sequential(runLauncher, allowAll, waitMs(3000));
         Command zeroSwerve = race(repeat(instant(() -> ((HamFollower) motion.follower).zero()), 1000),
                 waitMs(ZERO_DURATION_MS));
         Command zeroAuto = sequential(
@@ -291,8 +310,9 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 instant(() -> step = 1),
                 waitMs(startDelayMs));
         Command maybeShoot = conditional(this::shootFirst,
-                startIntake,
+                launchAll,
                 nothing);
+        Command flowerIntake = sequential(startIntake, waitMs(3000), stopIntake);
         Command maybeBlock = conditional(this::blockFirstDrop,
                 sequential(
                         parallel(driveToBlock, startIntake),
@@ -306,10 +326,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 driveToGarden,
                 nothing);
         Command maybeCloseFlower = conditional(this::visitCloseFlower,
-                sequential(driveToCloseFlower, settleAt(closeFlowerPose), waitMs(pointPauseMs)),
+                sequential(driveToCloseFlower, settleAt(closeFlowerPose), flowerIntake),
                 nothing);
         Command maybeFarFlower = conditional(this::visitFarFlower,
-                sequential(driveToFarFlower, settleAt(farFlowerPose), waitMs(pointPauseMs),
+                sequential(driveToFarFlower, settleAt(farFlowerPose), flowerIntake,
                         backOffFarFlower),
                 nothing);
 
