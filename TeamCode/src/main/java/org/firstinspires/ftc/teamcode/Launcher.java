@@ -242,13 +242,6 @@ public class Launcher extends RobotPart{
                 launchAngleDegrees = 270.0;
         }
         updateLaunchAngle();
-
-        // Second step, make sure the launch motor is spinning at the right speed
-        if(!ssom.ignoreGamepad){
-            launchMotor.setPower(ssom.gamepad1.left_trigger);
-            if(ssom.gamepad1.right_trigger>0.05)
-                launchServo.setPower(ssom.gamepad1.right_trigger);
-        }
 /*
             // Slew interimVelocityRPM toward targetVelocityRPM
             // Ramp UP gradually to limit inrush current; ramp DOWN instantly

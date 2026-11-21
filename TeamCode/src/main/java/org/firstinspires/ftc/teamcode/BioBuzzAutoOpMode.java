@@ -89,7 +89,9 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private Pose safeTunnelPose;
     private Pose parkPose;
     private double firstShotAngleDegrees;
+    private double secondShotAngleDegrees;
     private double firstShotDistance;
+    private double secondShotDistance;
 
 
     public BioBuzzAutoOpMode(long config) {
@@ -193,16 +195,19 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         if (offCenterStart()) {
             startPose = poseFactory.of(offCenterStartPoseX, offCenterStartPoseY, offCenterStartPoseAngle);
             blockPose = poseFactory.of(offCenterBlockPoseX, offCenterBlockPoseY, offCenterBlockPoseAngle);
-            firstShotAngleDegrees = -10;
+            firstShotAngleDegrees = 170;
+            secondShotAngleDegrees = 170;
             firstShotDistance = 62;
+            secondShotDistance = 62;
         } else {
             startPose = poseFactory.of(centerStartPoseX, centerStartPoseY, centerStartPoseAngle);
             blockPose = poseFactory.of(centerBlockPoseX, centerBlockPoseY, centerBlockPoseAngle);
-            firstShotAngleDegrees = 5;
+            firstShotAngleDegrees = 185;
+            secondShotAngleDegrees = 185;
             firstShotDistance = 56;
+            secondShotDistance = 56;
+
         }
-
-
 
         closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
         safeTunnelPose = poseFactory.of(safeTunnelPoseX, safeTunnelPoseY, safeTunnelPoseAngle);
@@ -290,16 +295,20 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         });
         Command startIntake = instant(() -> intake.setPower(1.0));
         Command stopIntake = instant(() -> intake.setPower(0.0));
-        Command startFlywheel = instant(() -> launcher.setRPMFromDistance(firstShotDistance,0,0));
+        Command startFlywheelFirstShot = instant(() -> launcher.setRPMFromDistance(firstShotDistance,0,0));
+        Command startFlywheelSecondShot = instant(() -> launcher.setRPMFromDistance(secondShotDistance,0,0));
         Command standbyFlywheel = instant(() -> launcher.setRPMFromDistance(20,0,0));
-        Command alignTurret = instant(() -> launcher.setLaunchAngleDegrees(firstShotAngleDegrees));
+        Command alignTurretFirstHive = instant(() -> launcher.setLaunchAngleDegrees(firstShotAngleDegrees));
+        Command alignTurretSecondHive = instant(() -> launcher.setLaunchAngleDegrees(secondShotAngleDegrees));
         Command allowPollen = instant(() -> ballStopper.allowPollen());
         Command allowNectar = instant(() -> ballStopper.allowNectar());
         Command allowAll = instant(() -> ballStopper.allowAll());
-        Command runLauncher = parallel(startFlywheel, alignTurret).until(() -> launcher.launchReady());
-        Command launchPollen = sequential(runLauncher, allowPollen, waitMs(3000));
-        Command launchNectar = sequential(runLauncher, allowNectar, waitMs(3000));
-        Command launchAll = sequential(runLauncher, allowAll, waitMs(3000));
+        Command stopAll = instant(()-> ballStopper.stopAll());
+        Command runLauncherFirstHive = parallel(startFlywheelFirstShot, alignTurretFirstHive).until(() -> launcher.launchReady());
+        Command runLauncherSecondHive = parallel(startFlywheelSecondShot, alignTurretSecondHive).until(() -> launcher.launchReady());
+        Command launchAllFirstHive = sequential(runLauncherFirstHive, allowAll, waitMs(3000), stopAll, standbyFlywheel);
+        Command launchAllSecondHive = sequential(runLauncherSecondHive, allowAll, waitMs(3000), stopAll, standbyFlywheel);
+
         Command zeroSwerve = race(repeat(instant(() -> ((HamFollower) motion.follower).zero()), 1000),
                 waitMs(ZERO_DURATION_MS));
         Command zeroAuto = sequential(
@@ -309,8 +318,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         Command startDelay = sequential(
                 instant(() -> step = 1),
                 waitMs(startDelayMs));
-        Command maybeShoot = conditional(this::shootFirst,
-                launchAll,
+        Command maybeShootFirstHive = conditional(this::shootFirst,
+                launchAllFirstHive,
+                nothing);
+        Command maybeShootSecondHive = conditional(this::shootFirst,
+                launchAllSecondHive,
                 nothing);
         Command flowerIntake = sequential(startIntake, waitMs(3000), stopIntake);
         Command maybeBlock = conditional(this::blockFirstDrop,
@@ -332,6 +344,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 sequential(driveToFarFlower, settleAt(farFlowerPose), flowerIntake,
                         backOffFarFlower),
                 nothing);
+        //spinning up, ball stopper, hive drop check
 
         // The overall schedule
         schedule(
@@ -340,9 +353,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                         zeroAuto,
                         // Normal schedule
                         sequential(
+                                standbyFlywheel,
                                 startDelay,
-                                maybeShoot,
+                                maybeShootFirstHive,
                                 maybeBlock,
+                                //check hive drop
                                 maybeGarden,
                                 maybeCloseFlower,
                                 maybeSafeTunnel,
