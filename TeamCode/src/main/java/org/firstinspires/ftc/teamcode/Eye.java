@@ -75,10 +75,10 @@ public class Eye extends RobotPart {
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data
         this.hives = new ArrayList<Hive>();
-        this.hives.add(new Hive("blue", "blue flower", flowerBlueFiducials));
-        this.hives.add(new Hive("blue", "blue non flower", nonFlowerBlueFiducials));
-        this.hives.add(new Hive("red", "red non flower", nonFlowerRedFiducials));
-        this.hives.add(new Hive("red", "red flower", flowerRedFiducials));
+        this.hives.add(new Hive("blue", "blueFlower", flowerBlueFiducials));
+        this.hives.add(new Hive("blue", "blueNonFlower", nonFlowerBlueFiducials));
+        this.hives.add(new Hive("red", "redNonFlower", nonFlowerRedFiducials));
+        this.hives.add(new Hive("red", "redFlower", flowerRedFiducials));
 
             /* Table of distances for in/s to angle degrees
             deltaAim = new ArrayList<>(List.of(
@@ -163,30 +163,40 @@ public class Eye extends RobotPart {
         //limelight.stop();
     }
 
-    public boolean nonflowerup(){
+    public boolean nonFlowerUp(){
         if (ssom.color == StandardSetupOpMode.COLOR.BLUE) {
-
             for (Hive hive : this.hives) {
-                if (hive.name.equals("blue scoring and red audience")) {
+                if (hive.name.equals("blueNonFlower")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        else{
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("redNonFlower")) {
                     return hive.isUp;
                 }
             }
         }
         return false;
-
     }
 
     public boolean flowerup(){
         if(ssom.color == StandardSetupOpMode.COLOR.BLUE ) {
-
             for (Hive hive : this.hives) {
-                if (hive.name.equals("blue audience and red scoring")) {
+                if (hive.name.equals("blueFlower")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        else{
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("redFlower")) {
                     return hive.isUp;
                 }
             }
         }
         return false;
-
     }
 
 
