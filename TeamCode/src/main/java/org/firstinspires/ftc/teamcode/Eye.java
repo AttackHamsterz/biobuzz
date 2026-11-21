@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.graphics.Color;
+
 import androidx.annotation.NonNull;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -26,10 +28,10 @@ public class Eye extends RobotPart {
     private final StandardSetupOpMode ssom;
     private final List<Integer> redFiducials = Arrays.asList(30, 31, 32, 33, 34, 35, 36, 37);
     private final List<Integer> blueFiducials = Arrays.asList(38, 39, 40, 41, 42, 43, 44, 45);
-    private List<Integer> audienceBlueFiducials = Arrays.asList(38,39,40,41);
-    private List<Integer> scoringBlueFiducials = Arrays.asList(42,43,44,45);
-    private List<Integer> audienceRedFiducials = Arrays.asList(34,35,36,37);
-    private List<Integer> scoringRedFiducials = Arrays.asList(33,32,31,30);
+    private List<Integer> flowerBlueFiducials = Arrays.asList(38,39,40,41);
+    private List<Integer> nonFlowerBlueFiducials = Arrays.asList(42,43,44,45);
+    private List<Integer> nonFlowerRedFiducials = Arrays.asList(34,35,36,37);
+    private List<Integer> flowerRedFiducials = Arrays.asList(33,32,31,30);
     public List<Hive> hives;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
@@ -73,10 +75,10 @@ public class Eye extends RobotPart {
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data
         this.hives = new ArrayList<Hive>();
-        this.hives.add(new Hive("blue", "blue audience", audienceBlueFiducials));
-        this.hives.add(new Hive("blue", "blue scoring", scoringBlueFiducials));
-        this.hives.add(new Hive("red", "red audience", audienceRedFiducials));
-        this.hives.add(new Hive("red", "red scoring", scoringRedFiducials));
+        this.hives.add(new Hive("blue", "blueFlower", flowerBlueFiducials));
+        this.hives.add(new Hive("blue", "blueNonFlower", nonFlowerBlueFiducials));
+        this.hives.add(new Hive("red", "redNonFlower", nonFlowerRedFiducials));
+        this.hives.add(new Hive("red", "redFlower", flowerRedFiducials));
 
             /* Table of distances for in/s to angle degrees
             deltaAim = new ArrayList<>(List.of(
@@ -111,7 +113,6 @@ public class Eye extends RobotPart {
             ssom.telemetry.update();
             return;
         }
-
         if (mode == Mode.FIND_HIVE) {
             resultInUse = limelight.getLatestResult();
 
@@ -161,6 +162,43 @@ public class Eye extends RobotPart {
         // Cleanup
         //limelight.stop();
     }
+
+    public boolean nonFlowerUp(){
+        if (ssom.color == StandardSetupOpMode.COLOR.BLUE) {
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("blueNonFlower")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        else{
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("redNonFlower")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean flowerup(){
+        if(ssom.color == StandardSetupOpMode.COLOR.BLUE ) {
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("blueFlower")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        else{
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("redFlower")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        return false;
+    }
+
 
 
     @Override
