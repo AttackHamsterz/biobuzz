@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.graphics.Color;
+
 import androidx.annotation.NonNull;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -160,6 +162,33 @@ public class Eye extends RobotPart {
         // Cleanup
         //limelight.stop();
     }
+
+    public boolean nonflowerup(){
+        if (ssom.color == StandardSetupOpMode.COLOR.BLUE) {
+
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("blue scoring and red audience")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        return false;
+
+    }
+
+    public boolean flowerup(){
+        if(ssom.color == StandardSetupOpMode.COLOR.BLUE ) {
+
+            for (Hive hive : this.hives) {
+                if (hive.name.equals("blue audience and red scoring")) {
+                    return hive.isUp;
+                }
+            }
+        }
+        return false;
+
+    }
+
 
 
     @Override
