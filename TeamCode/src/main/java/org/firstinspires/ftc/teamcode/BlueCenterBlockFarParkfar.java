@@ -3,15 +3,17 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
-@Autonomous(name = "RedCenterBlockFarParkFar", group = "Auto: Red")
-public class RedCenterBlockFarParkFar extends BioBuzzAutoOpMode {
-    public RedCenterBlockFarParkFar() {
+@Autonomous(name = "BlueCenterBlockFarParkfar", group = "Auto: Blue")
+@Disabled
+public class BlueCenterBlockFarParkfar extends BioBuzzAutoOpMode{
+    public BlueCenterBlockFarParkfar() {
         super(
-            RED |
+            BLUE |
             CENTER_START |
+                    SHOOT_FIRST |
             BLOCK_FIRST_DROP |
-            VISIT_CLOSE_FLOWER |
             VISIT_FAR_FLOWER |
+                    SHOOT_SECOND |
             FAR_PARK);
     }
 }
