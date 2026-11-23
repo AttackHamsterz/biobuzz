@@ -90,7 +90,7 @@ public class Constants {
                 //                .plus(Controller.proportionalFeedforward(FL_TURN_F)));
                 // First is close, second is far away
                 Controller.piecewise(Controller.pid(TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(FL_TURN_F))).put(
-                        0.25, Controller.pid(2.5*TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(2.5*FL_TURN_F))));
+                        0.25, Controller.pid(2.0*TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(2.0*FL_TURN_F))));
             }
     );
 
