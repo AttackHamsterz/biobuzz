@@ -35,8 +35,8 @@ public class Eye extends RobotPart {
     private List<Integer> flowerRedFiducials = Arrays.asList(33,32,31,30);
     public List<Hive> hives;
     private Fiducial targetedFiducial;
-    private double degreeToTurn;
-    private double positionBeingSet;
+    private double degreeToTurn = 90;
+    private double positionBeingSet = 0;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
         FIND_HIVE(1),       // Finding the fiducials
@@ -155,14 +155,14 @@ public class Eye extends RobotPart {
                             targetedFiducial = getTargetFiducial(hive);
                             degreeToTurn = Math.toDegrees(Math.atan2(targetedFiducial.y, targetedFiducial.x));
                             positionBeingSet = calcPositionFromAngle(degreeToTurn);
-                            camServo.setPosition(positionBeingSet);
+                            //camServo.setPosition(positionBeingSet);
                         } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Red mode and see a red fiducial
                             Hive hive = getActiveHive("red");
                             targetedFiducial = getTargetFiducial(hive);
                             degreeToTurn = Math.toDegrees(Math.atan2(targetedFiducial.y, targetedFiducial.x));
                             positionBeingSet = calcPositionFromAngle(degreeToTurn);
-                            camServo.setPosition(positionBeingSet);
+                            //camServo.setPosition(positionBeingSet);
                         } else{
                             resetCamera();
                             //start searching
@@ -174,7 +174,7 @@ public class Eye extends RobotPart {
         else if (mode == Mode.LOCATE_POLLEN) {
 
         }
-        // Cleanup
+        //Cleanup
         //limelight.stop();
     }
 
@@ -252,8 +252,10 @@ public class Eye extends RobotPart {
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 4) != 0) {
-            telemetry.addData("Angle",degreeToTurn);
+            telemetry.addData("Angle",degreeToTurn - 90);
             telemetry.addData("Position",positionBeingSet);
+            telemetry.addData("Mode", this.mode);
+            telemetry.addData("llresult", resultInUse.getTimestamp());
             if (targetedFiducial != null) {
                 telemetry.addData("Targeted Fiducial", targetedFiducial.id);
                 telemetry.addData(" x:", targetedFiducial.x );
@@ -261,15 +263,16 @@ public class Eye extends RobotPart {
                 telemetry.addData(" z:", targetedFiducial.z );
             }
 
-            /*for (Hive hive : this.hives) {
+            for (Hive hive : this.hives) {
                 telemetry.addData(hive.name + " isUp: ", hive.isUp);
+
                 for (Fiducial fiducial : hive.fiducials) {
+                    //telemetry.addData("fiducial: ", fiducial.id);
                     telemetry.addData("  " + fiducial.id + " x:", fiducial.x );
                     telemetry.addData("  " + fiducial.id + " y:", fiducial.y );
                     telemetry.addData("  " + fiducial.id + " z:", fiducial.z );
                 }
             }
-            */
         }
     }
 }
