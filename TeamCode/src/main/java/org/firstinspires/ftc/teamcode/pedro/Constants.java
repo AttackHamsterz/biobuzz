@@ -86,8 +86,11 @@ public class Constants {
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.turnController.set(
-                        Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(FL_TURN_F)));
+                //        Controller.pid(TURN_P, TURN_I, TURN_D)
+                //                .plus(Controller.proportionalFeedforward(FL_TURN_F)));
+                // First is close, second is far away
+                Controller.piecewise(Controller.pid(TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(FL_TURN_F))).put(
+                        0.25, Controller.pid(2.5*TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(2.5*FL_TURN_F))));
             }
     );
 
@@ -101,8 +104,10 @@ public class Constants {
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.turnController.set(
-                        Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(FR_TURN_F)));
+                //        Controller.pid(TURN_P, TURN_I, TURN_D)
+                //                .plus(Controller.proportionalFeedforward(FR_TURN_F)));
+                Controller.piecewise(Controller.pid(TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(FR_TURN_F))).put(
+                        0.25, Controller.pid(1.5*TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(1.5*FR_TURN_F))));
             }
     );
 
@@ -116,8 +121,10 @@ public class Constants {
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.turnController.set(
-                        Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(BL_TURN_F)));
+                //        Controller.pid(TURN_P, TURN_I, TURN_D)
+                //                .plus(Controller.proportionalFeedforward(BL_TURN_F)));
+                Controller.piecewise(Controller.pid(TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(BL_TURN_F))).put(
+                        0.25, Controller.pid(1.5*TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(1.5*BL_TURN_F))));
             }
     );
 
@@ -131,8 +138,10 @@ public class Constants {
                 c.driveDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.servoDirection.set(DcMotorSimple.Direction.REVERSE);
                 c.turnController.set(
-                        Controller.pid(TURN_P, TURN_I, TURN_D)
-                                .plus(Controller.proportionalFeedforward(BR_TURN_F)));
+                //        Controller.pid(TURN_P, TURN_I, TURN_D)
+                //                .plus(Controller.proportionalFeedforward(BR_TURN_F)));
+                Controller.piecewise(Controller.pid(TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(BR_TURN_F))).put(
+                        0.25, Controller.pid(1.5*TURN_P, TURN_I, TURN_D).plus(Controller.proportionalFeedforward(1.5*BR_TURN_F))));
             }
     );
 
