@@ -28,11 +28,15 @@ public class Eye extends RobotPart {
     private final StandardSetupOpMode ssom;
     private final List<Integer> redFiducials = Arrays.asList(30, 31, 32, 33, 34, 35, 36, 37);
     private final List<Integer> blueFiducials = Arrays.asList(38, 39, 40, 41, 42, 43, 44, 45);
+    private final List<Integer> centerFiducials = Arrays.asList(39, 40, 43, 44 ,35, 36, 32, 31);
     private List<Integer> flowerBlueFiducials = Arrays.asList(38,39,40,41);
     private List<Integer> nonFlowerBlueFiducials = Arrays.asList(42,43,44,45);
     private List<Integer> nonFlowerRedFiducials = Arrays.asList(34,35,36,37);
     private List<Integer> flowerRedFiducials = Arrays.asList(33,32,31,30);
     public List<Hive> hives;
+    private Fiducial targetedFiducial;
+    private double degreeToTurn;
+    private double positionBeingSet;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
         FIND_HIVE(1),       // Finding the fiducials
@@ -103,6 +107,7 @@ public class Eye extends RobotPart {
         // This tells Limelight to start looking!
         limelight.pipelineSwitch(0);
         limelight.start();
+        resetCamera();
     }
 
     @Override
@@ -146,11 +151,21 @@ public class Eye extends RobotPart {
                         // See which fiducial it is
                         if (ssom.color == StandardSetupOpMode.COLOR.BLUE && blueFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Blue mode and see a blue fiducial
-                            if (llPosition.z >= 0.85){
-                            }
-
+                            Hive hive = getActiveHive("blue");
+                            targetedFiducial = getTargetFiducial(hive);
+                            degreeToTurn = Math.toDegrees(Math.atan2(targetedFiducial.y, targetedFiducial.x));
+                            positionBeingSet = calcPositionFromAngle(degreeToTurn);
+                            camServo.setPosition(positionBeingSet);
                         } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
                             // we're in Red mode and see a red fiducial
+                            Hive hive = getActiveHive("red");
+                            targetedFiducial = getTargetFiducial(hive);
+                            degreeToTurn = Math.toDegrees(Math.atan2(targetedFiducial.y, targetedFiducial.x));
+                            positionBeingSet = calcPositionFromAngle(degreeToTurn);
+                            camServo.setPosition(positionBeingSet);
+                        } else{
+                            resetCamera();
+                            //start searching
                         }
                     }
                 }
@@ -199,12 +214,54 @@ public class Eye extends RobotPart {
         return false;
     }
 
+    public Hive getActiveHive(String color){
+        for (Hive hive : this.hives) {
+            if(hive.color.equals(color) && hive.isUp){
+                return hive;
+            }
+        }
+        return null;
+    }
 
+    public Fiducial getTargetFiducial(Hive hive){
+        Fiducial closest = null;
+        for (Fiducial fiducial : hive.fiducials){
+            if(centerFiducials.contains(fiducial.id)) {
+                if (closest == null) {
+                    closest = fiducial;
+                } else {
+                    Double distance = Math.abs(fiducial.x) + Math.abs(fiducial.y) + Math.abs(fiducial.z);
+
+                    if (distance < (Math.abs(closest.x) + Math.abs(closest.y) + Math.abs(closest.z)))
+                        closest = fiducial;
+                }
+            }
+        }
+
+        return closest;
+    }
+
+    public double calcPositionFromAngle(double angle){
+        return (angle - 90) * (2.0/350);
+    }
+
+    public void resetCamera(){
+        camServo.setPosition(0.0);
+    }
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 4) != 0) {
-            for (Hive hive : this.hives) {
+            telemetry.addData("Angle",degreeToTurn);
+            telemetry.addData("Position",positionBeingSet);
+            if (targetedFiducial != null) {
+                telemetry.addData("Targeted Fiducial", targetedFiducial.id);
+                telemetry.addData(" x:", targetedFiducial.x );
+                telemetry.addData(" y:", targetedFiducial.y );
+                telemetry.addData(" z:", targetedFiducial.z );
+            }
+
+            /*for (Hive hive : this.hives) {
                 telemetry.addData(hive.name + " isUp: ", hive.isUp);
                 for (Fiducial fiducial : hive.fiducials) {
                     telemetry.addData("  " + fiducial.id + " x:", fiducial.x );
@@ -212,6 +269,7 @@ public class Eye extends RobotPart {
                     telemetry.addData("  " + fiducial.id + " z:", fiducial.z );
                 }
             }
+            */
         }
     }
 }
