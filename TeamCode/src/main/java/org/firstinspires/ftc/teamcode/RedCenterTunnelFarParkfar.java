@@ -2,9 +2,9 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-@Autonomous(name = "RedCenterTunnelFarParkFar", group = "Auto: Red")
-public class RedCenterTunnelFarParkFar extends BioBuzzAutoOpMode {
-    public RedCenterTunnelFarParkFar() {
+@Autonomous(name = "RedCenterTunnelFarParkfar", group = "Auto: Red")
+public class RedCenterTunnelFarParkfar extends BioBuzzAutoOpMode {
+    public RedCenterTunnelFarParkfar() {
         super(
             RED |
             CENTER_START |

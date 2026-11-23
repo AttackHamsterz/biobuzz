@@ -78,15 +78,18 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private Pose startPose;
     private Pose blockPose;
     private Pose closeFlowerPose;
+    private Pose closeExtraFlowerPose;
     private Pose farFlowerPose;
+    private Pose farExtraFlowerPose;
     private Pose farFlowerBackoffPose;
-    private Pose safeOnePose;
-    private Pose safeTwoPose;
-    private Pose safeThreePose;
-    private Pose safeFourPose;
-    private Pose shootClosePose;
-    private Pose shootFarPose;
-    private Pose safeTunnelPose;
+    private Pose safeCloseTunnelPose;
+    private Pose safeFarTunnelPose;
+    private Pose safeFarOutsidePose;
+    private Pose safeCloseOutsidePose;
+    private Pose shootCloseOutsidePose;
+    private Pose shootCloseInsidePose;
+    private Pose shootFarOutsidePose;
+    private Pose shootFarInsidePose;
     private Pose parkPose;
     private double firstShotAngleDegrees;
     private double secondShotAngleDegrees;
@@ -123,6 +126,9 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private boolean visitFarFlower() {
         return (VISIT_FAR_FLOWER & config) != 0;
     }
+    private boolean shootSecond() {
+        return (SHOOT_SECOND & config) != 0;
+    }
 
     private boolean farPark() {
         return (FAR_PARK & config) != 0;
@@ -152,37 +158,47 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double offCenterBlockPoseY = 21.0;
         final double offCenterBlockPoseAngle = 170.0;
 
-        final double closeFlowerPoseX = 14.5;
+        final double closeFlowerPoseX = 15;
         final double closeFlowerPoseY = 46.0;
         final double closeFlowerPoseAngle = 180.0;
+        final double closeExtraFlowerPoseX = closeFlowerPoseX-2;
 
         final double farFlowerPoseX = 49.0;
-        final double farFlowerPoseY = 126;
+        final double farFlowerPoseY = 127;
         final double farFlowerPoseAngle = 90.0;
+        final double farExtraFlowerPoseY = farFlowerPoseY+2;
 
-        final double shootLeftPoseX = 57.0;
-        final double shootLeftPoseY = 10.0;
-        final double shootLeftPoseAngle = 90.0;
+        final double shootCloseInsidePoseX = 35.0;
+        final double shootCloseInsidePoseY = 10.0;
+        final double shootCloseInsidePoseAngle = 90.0;
 
-        final double shootRightPoseX = 35.0;
-        final double shootRightPoseY = 10.0;
-        final double shootRightPoseAngle = 90.0;
+        final double shootFarInsidePoseX = 35.0;
+        final double shootFarInsidePoseY = 110.0;
+        final double shootFarInsidePoseAngle = 90.0;
 
-        final double safeScoringTunnelPoseX = 35.0;
-        final double safeScoringTunnelPoseY = 106.0;
-        final double safeScoringTunnelPoseAngle = 90.0;
+        final double shootCloseOutsidePoseX = 57.0;
+        final double shootCloseOutsidePoseY = 10.0;
+        final double shootCloseOutsidePoseAngle = 90.0;
+
+        final double shootFarOutsidePoseX = 57.0;
+        final double shootFarOutsidePoseY = 110.0;
+        final double shootFarOutsidePoseAngle = 90.0;
+
+        final double safeCloseTunnelPoseX = 35.0;
+        final double safeCloseTunnelPoseY = 110.0;
+        final double safeCloseTunnelPoseAngle = 90.0;
         
-        final double safeTunnelPoseX = 62.0;
-        final double safeTunnelPoseY = 106.0;
-        final double safeTunnelPoseAngle = 90.0;
+        final double safeFarTunnelPoseX = 62.0;
+        final double safeFarTunnelPoseY = 106.0;
+        final double safeFarTunnelPoseAngle = 90.0;
 
-        final double safeScoringOutsidePoseX = 35.0;
-        final double safeScoringOutsidePoseY = 35.0;
-        final double safeScoringOutsideAngle = 90.0;
+        final double safeCloseOutsidePoseX = 35.0;
+        final double safeCloseOutsidePoseY = 35.0;
+        final double safeCloseOutsidePoseAngle = 90.0;
 
-        final double safeAudienceOutsidePoseX = 35.0;
-        final double safeAudienceOutsidePoseY = 106.0;
-        final double safeAudienceOutsideAngle = 90.0;
+        final double safeFarOutsidePoseX = 35.0;
+        final double safeFarOutsidePoseY = 106.0;
+        final double safeFarOutsidePoseAngle = 90.0;
 
         final double farParkX = 15;
         final double farParkY = 122.0;
@@ -206,12 +222,22 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             secondShotAngleDegrees = 185;
             firstShotDistance = 56;
             secondShotDistance = 56;
-
         }
 
         closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
-        safeTunnelPose = poseFactory.of(safeTunnelPoseX, safeTunnelPoseY, safeTunnelPoseAngle);
+        closeExtraFlowerPose = poseFactory.of(closeExtraFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
+        shootCloseInsidePose = poseFactory.of(shootCloseInsidePoseX, shootCloseInsidePoseY, shootCloseInsidePoseAngle);
+        shootFarInsidePose = poseFactory.of(shootFarInsidePoseX, shootFarInsidePoseY, shootFarInsidePoseAngle);
+        shootCloseOutsidePose = poseFactory.of(shootCloseOutsidePoseX, shootCloseOutsidePoseY, shootCloseOutsidePoseAngle);
+        shootFarOutsidePose = poseFactory.of(shootFarOutsidePoseX, shootFarOutsidePoseY, shootFarOutsidePoseAngle);
+        safeCloseTunnelPose = poseFactory.of(safeCloseTunnelPoseX, safeCloseTunnelPoseY, safeCloseTunnelPoseAngle);
+        safeFarTunnelPose = poseFactory.of(safeFarTunnelPoseX, safeFarTunnelPoseY, safeFarTunnelPoseAngle);
+        safeCloseOutsidePose = poseFactory.of(safeCloseOutsidePoseX, safeCloseOutsidePoseY, safeCloseOutsidePoseAngle);
+        safeFarOutsidePose = poseFactory.of(safeFarOutsidePoseX, safeFarOutsidePoseY, safeFarOutsidePoseAngle);
+
+
         farFlowerPose = poseFactory.of(farFlowerPoseX, farFlowerPoseY, farFlowerPoseAngle);
+        farExtraFlowerPose = poseFactory.of(farFlowerPoseX, farExtraFlowerPoseY, farFlowerPoseAngle);
         // Straight back from the far flower, opposite the way the robot faces there
         farFlowerBackoffPose = poseFactory.of(
                 farFlowerPoseX - farFlowerBackoffInches * Math.cos(Math.toRadians(farFlowerPoseAngle)),
@@ -260,10 +286,22 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
+        Command driveToCloseExtraFlower = lazy(() -> {
+            step = 5;
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, closeExtraFlowerPose).linear(currentPose, closeExtraFlowerPose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
         Command driveToFarFlower = lazy(() -> {
             step = 6;
             Pose currentPose = motion.follower.pose();
             Path dynamicPath = line(currentPose, farFlowerPose).linear(currentPose, farFlowerPose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+        Command driveToFarExtraFlower = lazy(() -> {
+            step = 6;
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, farExtraFlowerPose).linear(currentPose, farExtraFlowerPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command backOffFarFlower = lazy(() -> {
@@ -279,10 +317,48 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             return follow(motion.follower, dynamicPath);
         });
         // Waypoint: passes straight through, no settle or pause
-        Command driveToSafeTunnel = lazy(() -> {
+        Command driveToShootCloseInside = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, shootCloseInsidePose).linear(currentPose, shootCloseInsidePose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+
+        Command driveToShootFarInside = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, shootFarInsidePose).linear(currentPose, shootFarInsidePose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+
+        Command driveToShootCloseOutside = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, shootCloseOutsidePose).linear(currentPose, shootCloseOutsidePose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+        Command driveToShootFarOutside = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, shootFarOutsidePose).linear(currentPose, shootFarOutsidePose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+
+        Command driveToSafeCloseTunnel = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, safeCloseTunnelPose).linear(currentPose, safeCloseTunnelPose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+        Command driveToSafeFarTunnel = lazy(() -> {
             step = 11;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, safeTunnelPose).linear(currentPose, safeTunnelPose, turnEndFraction);
+            Path dynamicPath = line(currentPose, safeFarTunnelPose).linear(currentPose, safeFarTunnelPose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+        Command driveToSafeCloseOutside = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, safeCloseOutsidePose).linear(currentPose, safeCloseOutsidePose, turnEndFraction);
+            return follow(motion.follower, dynamicPath);
+        });
+        Command driveToSafeFarOutside = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Path dynamicPath = line(currentPose, safeFarOutsidePose).linear(currentPose, safeFarOutsidePose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
         Command driveToGarden = lazy(() -> {
@@ -291,6 +367,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose, turnEndFraction);
             return follow(motion.follower, dynamicPath);
         });
+        
         Command nothing = instant(() -> {
         });
         Command startIntake = instant(() -> intake.setPower(1.0));
@@ -318,13 +395,16 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         Command startDelay = sequential(
                 instant(() -> step = 1),
                 waitMs(startDelayMs));
+        //Shoot delay
+        //flower intake delay
         Command maybeShootFirstHive = conditional(this::shootFirst,
-                launchAllFirstHive,
+                sequential(driveToShootCloseInside, launchAllFirstHive),
                 nothing);
-        Command maybeShootSecondHive = conditional(this::shootFirst,
-                launchAllSecondHive,
+        Command maybeShootSecondHive = conditional(this::shootSecond,
+                sequential(driveToShootFarOutside, launchAllSecondHive),
                 nothing);
-        Command flowerIntake = sequential(startIntake, waitMs(3000), stopIntake);
+        Command closeFlowerIntake = sequential(startIntake, race(waitMs(3000), driveToCloseExtraFlower), stopIntake);
+        Command farFlowerIntake = sequential(startIntake, race(waitMs(3000), driveToFarExtraFlower), stopIntake);
         Command maybeBlock = conditional(this::blockFirstDrop,
                 sequential(
                         parallel(driveToBlock, startIntake),
@@ -332,16 +412,16 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                         waitMs(blockWaitMs)),
                 nothing);
         Command maybeSafeTunnel = conditional(this::viaSafeTunnel,
-                driveToSafeTunnel,
+                sequential(driveToSafeCloseTunnel, driveToSafeFarTunnel),
                 nothing);
         Command maybeGarden = conditional(this::visitGarden,
                 driveToGarden,
                 nothing);
         Command maybeCloseFlower = conditional(this::visitCloseFlower,
-                sequential(driveToCloseFlower, settleAt(closeFlowerPose), flowerIntake),
+                sequential(driveToCloseFlower, settleAt(closeFlowerPose), closeFlowerIntake),
                 nothing);
         Command maybeFarFlower = conditional(this::visitFarFlower,
-                sequential(driveToFarFlower, settleAt(farFlowerPose), flowerIntake,
+                sequential(driveToFarFlower, settleAt(farFlowerPose), farFlowerIntake,
                         backOffFarFlower),
                 nothing);
         //spinning up, ball stopper, hive drop check
@@ -360,8 +440,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                                 //check hive drop
                                 maybeGarden,
                                 maybeCloseFlower,
+                                maybeShootFirstHive,
                                 maybeSafeTunnel,
                                 maybeFarFlower,
+                                maybeShootSecondHive,
                                 driveToPark,
                                 // Settle before zeroing: zeroing stops the hold, so any error left here stays
                                 settleAt(parkPose),
