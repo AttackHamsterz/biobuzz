@@ -73,7 +73,7 @@ public class StandardSetupOpMode extends OpMode {
         partsList.add(Map.entry(intake, 20));
         partsList.add(Map.entry(ballStopper, 20));
         partsList.add(Map.entry(launcher, 20));
-        partsList.add(Map.entry(eye, 40));
+        partsList.add(Map.entry(eye, 50));
 
         // Init parts
         for (Map.Entry<RobotPart, Integer> entry : partsList) {

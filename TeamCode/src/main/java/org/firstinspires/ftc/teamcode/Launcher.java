@@ -34,6 +34,7 @@ public class Launcher extends RobotPart{
     // This limits inrush current while keeping spin-up fast enough for gameplay.
     private static final double SLEW_UP_RPM_PER_TICK = 1500.0;
 
+    private final DcMotorEx dummyMotor;
     private final DcMotorEx launchMotor;
     private volatile double targetVelocityRPM;  // What callers request
     private double interimVelocityRPM;           // Slewed value actually sent to motor
@@ -85,19 +86,24 @@ public class Launcher extends RobotPart{
     public Launcher(StandardSetupOpMode ssom){
         this.ssom = ssom;
         target = TargetMode.HIVE;
+        dummyMotor = ssom.hardwareMap.get(DcMotorEx.class, "pollenIntake");
         launchMotor = ssom.hardwareMap.get(DcMotorEx.class, "launchMotor");
         launchServo = ssom.hardwareMap.get(CRServo.class, "launchServo");
 
         //Default to launchable until distance is outside the range.
         isLaunchable = true;
 
+        // Dummy motor has our encoder
+        dummyMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        dummyMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
         // Setup PID and motor
         launchMotor.setVelocityPIDFCoefficients(kP, kI, kD, kF);
         launchMotor.setDirection(DcMotorEx.Direction.REVERSE);
 
         // Setup launch servo and digital encoder
-        launchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        launchMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        //launchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        //launchMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         launchServoController = Controller.piecewise(Controller.pid(TURN_Small_P, TURN_Small_I, TURN_Small_D));
         if(TURN_Small_F != 0)
             launchServoController.plus(Controller.proportionalFeedforward(TURN_Small_F));
@@ -136,7 +142,7 @@ public class Launcher extends RobotPart{
     }
 
     public double getLaunchAngleDegrees(){
-        return (((((double)launchMotor.getCurrentPosition() * ELC_SCALE_FACTOR) % 1.0) + 1.0) % 1.0) * 360.0;
+        return (((((double)dummyMotor.getCurrentPosition() * ELC_SCALE_FACTOR) % 1.0) + 1.0) % 1.0) * 360.0;
     }
     public void setLaunchAngleDegrees(double launchAngleDegrees){
         this.launchAngleDegrees = (launchAngleDegrees % 360 + 360) % 360;
@@ -232,10 +238,13 @@ public class Launcher extends RobotPart{
     public void loop() {
         // First step, make sure the launch servo is turned to the correct angle
         if(ssom.eye.activeTarget()){
-            launchAngleDegrees = -ssom.eye.getCamAngleDeg();
+            setLaunchAngleDegrees(-ssom.eye.getTargetAngleDeg());
         }
+
+        // User 2 can override to get the camera aiming back on track
         if(!ssom.ignoreGamepad) {
-            launchAngleDegrees = -Math.toDegrees(Math.atan2(ssom.gamepad2.left_stick_y, ssom.gamepad2.left_stick_x)) + 90.0;
+            if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05)
+                setLaunchAngleDegrees(-Math.toDegrees(Math.atan2(-ssom.gamepad2.left_stick_y, -ssom.gamepad2.left_stick_x)) + 90.0);
         }
         updateLaunchAngle();
 
@@ -269,7 +278,6 @@ public class Launcher extends RobotPart{
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 16) != 0) {
-            telemetry.addData("rightTrigger", ssom.gamepad1.right_trigger);
             telemetry.addData("targetLaunchAngle", launchAngleDegrees);
             telemetry.addData("launchAngle", getLaunchAngleDegrees());
             telemetry.addData("launchTargetVelocityRPM", targetVelocityRPM);

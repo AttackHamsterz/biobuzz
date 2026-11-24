@@ -15,7 +15,7 @@ import java.util.List;
 
 public class Eye extends RobotPart {
     private static final double HIVE_UP_HEIGHT = 0.85;
-    private static final double CLOSE_ENOUGH_DEGREES = 0.2; // Seems close enough
+    private static final double CLOSE_ENOUGH_DEGREES = 2.0; // Seems close enough
     private static final double FRACTIONAL_CORRECTION = 0.4; // Percentage of correction to apply
 
     private final Servo camServo;
@@ -216,9 +216,16 @@ public class Eye extends RobotPart {
             }
 
             // Here we update the camera position
-
             // TODO - Handle wrap around
             targetCamAngleDeg = currentCamAngleDeg + (FRACTIONAL_CORRECTION * degreeToTurn);
+            if(!ssom.ignoreGamepad) {
+                if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05) {
+                    targetCamAngleDeg = Math.toDegrees(Math.atan2(-ssom.gamepad2.left_stick_y, -ssom.gamepad2.left_stick_x)) - 90.0;
+                    if (targetCamAngleDeg < -180) targetCamAngleDeg += 360.0;
+                    if (targetCamAngleDeg > 180) targetCamAngleDeg -= 360.0;
+                    degreeToTurn = CLOSE_ENOUGH_DEGREES + 1.0;
+                }
+            }
             if (Math.abs(degreeToTurn) > CLOSE_ENOUGH_DEGREES) {
                 camServo.setPosition(calcPowerFromAngle(targetCamAngleDeg));
             }
@@ -240,8 +247,8 @@ public class Eye extends RobotPart {
         return activeTarget;
     }
 
-    public double getCamAngleDeg(){
-        return currentCamAngleDeg;
+    public double getTargetAngleDeg(){
+        return targetCamAngleDeg;
     }
 
     /**

@@ -14,7 +14,7 @@ public abstract class RobotPart {
     //    8 - Intake
     //   16 - Launcher
     //   So to dump Motion, Eye and Intake: 0b00001101 -or- 1+4+8
-    public static final int DEBUG = 4;
+    public static final int DEBUG = 4+16;
 
     public abstract void init();
     public abstract void start();
