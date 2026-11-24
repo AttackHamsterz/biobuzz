@@ -231,15 +231,11 @@ public class Launcher extends RobotPart{
     @Override
     public void loop() {
         // First step, make sure the launch servo is turned to the correct angle
+        if(ssom.eye.activeTarget()){
+            launchAngleDegrees = -ssom.eye.getCamAngleDeg();
+        }
         if(!ssom.ignoreGamepad) {
-            if(ssom.gamepad1.dpad_up)
-                launchAngleDegrees = 0;
-            else if(ssom.gamepad1.dpad_left)
-                launchAngleDegrees = 90.0;
-            else if(ssom.gamepad1.dpad_down)
-                launchAngleDegrees = 180.0;
-            else if(ssom.gamepad1.dpad_right)
-                launchAngleDegrees = 270.0;
+            launchAngleDegrees = -Math.toDegrees(Math.atan2(ssom.gamepad2.left_stick_y, ssom.gamepad2.left_stick_x)) + 90.0;
         }
         updateLaunchAngle();
 

@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.graphics.Color;
 
 import androidx.annotation.NonNull;
 
@@ -10,33 +9,26 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 public class Eye extends RobotPart {
-    //private static final double CLOSE_ENOUGH_DEGREES = 6.0;
+    private static final double HIVE_UP_HEIGHT = 0.85;
+    private static final double CLOSE_ENOUGH_DEGREES = 0.2; // Seems close enough
+    private static final double FRACTIONAL_CORRECTION = 0.4; // Percentage of correction to apply
+
     private final Servo camServo;
     private final Limelight3A limelight;
     private final Mode mode;
-    private LLResult resultInUse;
-    private final StandardSetupOpMode ssom;
-    private final List<Integer> redFiducials = Arrays.asList(30, 31, 32, 33, 34, 35, 36, 37);
-    private final List<Integer> blueFiducials = Arrays.asList(38, 39, 40, 41, 42, 43, 44, 45);
-    private final List<Integer> centerFiducials = Arrays.asList(39, 40, 43, 44 ,35, 36, 32, 31);
-    private List<Integer> flowerBlueFiducials = Arrays.asList(38,39,40,41);
-    private List<Integer> nonFlowerBlueFiducials = Arrays.asList(42,43,44,45);
-    private List<Integer> nonFlowerRedFiducials = Arrays.asList(34,35,36,37);
-    private List<Integer> flowerRedFiducials = Arrays.asList(33,32,31,30);
-    public List<Hive> hives;
-    private Fiducial targetedFiducial;
-    private double degreeToTurn = 90;
-    private double positionBeingSet = 0;
+
+    private Position hiveResult;
+    private Position aimResult;
+
+    private boolean activeTarget = false;
+    private boolean flowerHiveUp = false; // Game starts with non flower hive up
+    private double currentCamAngleDeg;
+    private double targetCamAngleDeg;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
         FIND_HIVE(1),       // Finding the fiducials
@@ -74,15 +66,11 @@ public class Eye extends RobotPart {
 
         // Setup camera servo
         camServo = ssom.hardwareMap.get(Servo.class, "camServo");
+        camServo.setDirection(Servo.Direction.FORWARD);
 
         // Setup limelight
         limelight = ssom.hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100); // This sets how often we ask Limelight for data
-        this.hives = new ArrayList<Hive>();
-        this.hives.add(new Hive("blue", "blueFlower", flowerBlueFiducials));
-        this.hives.add(new Hive("blue", "blueNonFlower", nonFlowerBlueFiducials));
-        this.hives.add(new Hive("red", "redNonFlower", nonFlowerRedFiducials));
-        this.hives.add(new Hive("red", "redFlower", flowerRedFiducials));
 
             /* Table of distances for in/s to angle degrees
             deltaAim = new ArrayList<>(List.of(
@@ -100,6 +88,8 @@ public class Eye extends RobotPart {
     @Override
     public void init() {
         camServo.setPosition(0.5);
+        currentCamAngleDeg = 0;
+        targetCamAngleDeg = 0;
     }
 
     @Override
@@ -107,7 +97,6 @@ public class Eye extends RobotPart {
         // This tells Limelight to start looking!
         limelight.pipelineSwitch(0);
         limelight.start();
-        resetCamera();
     }
 
     @Override
@@ -119,160 +108,171 @@ public class Eye extends RobotPart {
             return;
         }
         if (mode == Mode.FIND_HIVE) {
-            resultInUse = limelight.getLatestResult();
+            // Get results and latest servo position closest to results fetch
+            LLResult resultInUse = limelight.getLatestResult();
+            currentCamAngleDeg = calcAngleFromPower(camServo.getPosition());
+            double degreeToTurn = 0;
+
+            boolean foundHiveState = false;
+            boolean foundAimPoint = false;
+            hiveResult = null;
+            aimResult = null;
 
             if (resultInUse != null) {
-                Pose3D botPose = resultInUse.getBotpose();
-                YawPitchRollAngles llOrientation = botPose.getOrientation();
-                Position llPosition = botPose.getPosition();
+                // We are looking for two things, which hive is up and aim point
+                // Once we have that we stop looking
 
                 List<LLResultTypes.FiducialResult> fiducials = resultInUse.getFiducialResults();
                 if (fiducials != null) {
-                    for(LLResultTypes.FiducialResult fiducial : fiducials) {
-                        int id = fiducial.getFiducialId();
-                        Position fiducialResult = fiducial.getTargetPoseRobotSpace().getPosition();
-
-                        for (Hive hive : this.hives) {
-                            for (Fiducial hiveFiducial : hive.fiducials)
-                            {
-                                if (hiveFiducial.id == id) {
-                                    hiveFiducial.x = fiducialResult.x;
-                                    hiveFiducial.y = fiducialResult.y;
-                                    hiveFiducial.z = fiducialResult.z;
-
-                                    if (hiveFiducial.z >= 0.85) {
-                                        hive.isUp = true;
+                    if (ssom.color == StandardSetupOpMode.COLOR.BLUE) {
+                        // Pipeline should sort them closest to furthest
+                        for (LLResultTypes.FiducialResult fiducial : fiducials) {
+                            int id = fiducial.getFiducialId();
+                            if (!foundHiveState) {
+                                // flowerBlueFiducials = Arrays.asList(38,39,40,41);
+                                if (id >= 38 && id <= 41) {
+                                    hiveResult = fiducial.getTargetPoseRobotSpace().getPosition();
+                                    if (hiveResult.z >= HIVE_UP_HEIGHT) {
+                                        flowerHiveUp = true;
                                     } else {
-                                        hive.isUp = false;
+                                        flowerHiveUp = false;
                                     }
+                                    foundHiveState = true;
+                                }
+                                // nonFlowerBlueFiducials = Arrays.asList(42,43,44,45);
+                                else if (id >= 42 && id <= 45) {
+                                    hiveResult = fiducial.getTargetPoseRobotSpace().getPosition();
+                                    if (hiveResult.z >= HIVE_UP_HEIGHT) {
+                                        flowerHiveUp = false;
+                                    } else {
+                                        flowerHiveUp = true;
+                                    }
+                                    foundHiveState = true;
                                 }
                             }
+                            if (!foundAimPoint) {
+                                // centerBlueFiducials = Arrays.asList(39, 40, 43, 44);
+                                if (id == 39 || id == 40 || id == 43 || id == 44) {
+                                    aimResult = fiducial.getTargetPoseRobotSpace().getPosition();
+                                    degreeToTurn = -Math.toDegrees(Math.atan2(aimResult.y, aimResult.x)) + 90.0;
+                                    if (degreeToTurn > 180.0)
+                                        degreeToTurn -= 360.0;
+                                    else if (degreeToTurn < -180.0)
+                                        degreeToTurn += 360.0;
+                                    foundAimPoint = true;
+                                }
+                            }
+                            if (foundHiveState && foundAimPoint)
+                                break;
                         }
-                        // See which fiducial it is
-                        if (ssom.color == StandardSetupOpMode.COLOR.BLUE && blueFiducials.contains(fiducial.getFiducialId())) {
-                            // we're in Blue mode and see a blue fiducial
-                            Hive hive = getActiveHive("blue");
-                            targetedFiducial = getTargetFiducial(hive);
-                            degreeToTurn = Math.toDegrees(Math.atan2(targetedFiducial.y, targetedFiducial.x));
-                            positionBeingSet = calcPositionFromAngle(degreeToTurn);
-                            //camServo.setPosition(positionBeingSet);
-                        } else if (ssom.color == StandardSetupOpMode.COLOR.RED && redFiducials.contains(fiducial.getFiducialId())) {
-                            // we're in Red mode and see a red fiducial
-                            Hive hive = getActiveHive("red");
-                            targetedFiducial = getTargetFiducial(hive);
-                            degreeToTurn = Math.toDegrees(Math.atan2(targetedFiducial.y, targetedFiducial.x));
-                            positionBeingSet = calcPositionFromAngle(degreeToTurn);
-                            //camServo.setPosition(positionBeingSet);
-                        } else{
-                            resetCamera();
-                            //start searching
+                    } else {
+                        for (LLResultTypes.FiducialResult fiducial : fiducials) {
+                            int id = fiducial.getFiducialId();
+                            if (!foundHiveState) {
+                                // flowerRedFiducials = Arrays.asList(33,32,31,30);
+                                if (id >= 30 && id <= 33) {
+                                    hiveResult = fiducial.getTargetPoseRobotSpace().getPosition();
+                                    if (hiveResult.z >= HIVE_UP_HEIGHT) {
+                                        flowerHiveUp = true;
+                                    } else {
+                                        flowerHiveUp = false;
+                                    }
+                                    foundHiveState = true;
+                                }
+                                // nonFlowerRedFiducials = Arrays.asList(34,35,36,37);
+                                else if (id >= 34 && id <= 37) {
+                                    hiveResult = fiducial.getTargetPoseRobotSpace().getPosition();
+                                    if (hiveResult.z >= HIVE_UP_HEIGHT) {
+                                        flowerHiveUp = false;
+                                    } else {
+                                        flowerHiveUp = true;
+                                    }
+                                    foundHiveState = true;
+                                }
+                            }
+                            if (!foundAimPoint) {
+                                // centerRedFiducials = Arrays.asList(35, 36, 32, 31);
+                                if (id == 31 || id == 32 || id == 35 || id == 36) {
+                                    aimResult = fiducial.getTargetPoseRobotSpace().getPosition();
+                                    degreeToTurn = -Math.toDegrees(Math.atan2(aimResult.y, aimResult.x)) + 90.0;
+                                    if (degreeToTurn > 180.0)
+                                        degreeToTurn -= 360.0;
+                                    else if (degreeToTurn < -180.0)
+                                        degreeToTurn += 360.0;
+                                    foundAimPoint = true;
+                                }
+                            }
+                            if (foundHiveState && foundAimPoint)
+                                break;
                         }
                     }
                 }
+            }
+            activeTarget = aimResult != null;
+
+            // TODO - If we didn't find an aim point, scan search
+            if (!foundAimPoint) {
+
+            }
+
+            // Here we update the camera position
+
+            // TODO - Handle wrap around
+            targetCamAngleDeg = currentCamAngleDeg + (FRACTIONAL_CORRECTION * degreeToTurn);
+            if (Math.abs(degreeToTurn) > CLOSE_ENOUGH_DEGREES) {
+                camServo.setPosition(calcPowerFromAngle(targetCamAngleDeg));
             }
         }
         else if (mode == Mode.LOCATE_POLLEN) {
 
         }
-        //Cleanup
-        //limelight.stop();
     }
 
     public boolean nonFlowerUp(){
-        if (ssom.color == StandardSetupOpMode.COLOR.BLUE) {
-            for (Hive hive : this.hives) {
-                if (hive.name.equals("blueNonFlower")) {
-                    return hive.isUp;
-                }
-            }
-        }
-        else{
-            for (Hive hive : this.hives) {
-                if (hive.name.equals("redNonFlower")) {
-                    return hive.isUp;
-                }
-            }
-        }
-        return false;
+        return !flowerHiveUp;
     }
 
     public boolean flowerup(){
-        if(ssom.color == StandardSetupOpMode.COLOR.BLUE ) {
-            for (Hive hive : this.hives) {
-                if (hive.name.equals("blueFlower")) {
-                    return hive.isUp;
-                }
-            }
-        }
-        else{
-            for (Hive hive : this.hives) {
-                if (hive.name.equals("redFlower")) {
-                    return hive.isUp;
-                }
-            }
-        }
-        return false;
+        return flowerHiveUp;
     }
 
-    public Hive getActiveHive(String color){
-        for (Hive hive : this.hives) {
-            if(hive.color.equals(color) && hive.isUp){
-                return hive;
-            }
-        }
-        return null;
+    public boolean activeTarget(){
+        return activeTarget;
     }
 
-    public Fiducial getTargetFiducial(Hive hive){
-        Fiducial closest = null;
-        for (Fiducial fiducial : hive.fiducials){
-            if(centerFiducials.contains(fiducial.id)) {
-                if (closest == null) {
-                    closest = fiducial;
-                } else {
-                    Double distance = Math.abs(fiducial.x) + Math.abs(fiducial.y) + Math.abs(fiducial.z);
-
-                    if (distance < (Math.abs(closest.x) + Math.abs(closest.y) + Math.abs(closest.z)))
-                        closest = fiducial;
-                }
-            }
-        }
-
-        return closest;
+    public double getCamAngleDeg(){
+        return currentCamAngleDeg;
     }
 
-    public double calcPositionFromAngle(double angle){
-        return (angle - 90) * (2.0/350);
+    /**
+     * Given an angle in degrees we calculate the power that's applied to the camera servo.
+     * 0.0 rotates 175 degrees counter clockwise, 0.5 is 0 degrees (straight ahead), 1.0 rotates
+     * 175 degrees clockwise
+     * @param angle degrees to rotate to
+     * @return (power from 0.0 to 1.0)
+     */
+    public double calcPowerFromAngle(double angle){
+        return 0.5 + angle * 0.00285714285; // (1/350 power/degree)
     }
 
-    public void resetCamera(){
-        camServo.setPosition(0.0);
+    public double calcAngleFromPower(double power){
+        return (power - 0.5) * 350.0;
     }
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 4) != 0) {
-            telemetry.addData("Angle",degreeToTurn - 90);
-            telemetry.addData("Position",positionBeingSet);
             telemetry.addData("Mode", this.mode);
-            telemetry.addData("llresult", resultInUse.getTimestamp());
-            if (targetedFiducial != null) {
-                telemetry.addData("Targeted Fiducial", targetedFiducial.id);
-                telemetry.addData(" x:", targetedFiducial.x );
-                telemetry.addData(" y:", targetedFiducial.y );
-                telemetry.addData(" z:", targetedFiducial.z );
+            telemetry.addData("CamAngle",currentCamAngleDeg);
+            telemetry.addData("TargetAngle",targetCamAngleDeg);
+            telemetry.addData("FlowerHiveUp", flowerHiveUp);
+            Position temp = aimResult;
+            if(temp != null){
+                telemetry.addData("aim x", temp.x);
+                telemetry.addData("aim y", temp.y);
+                telemetry.addData("aim z", temp.z);
             }
 
-            for (Hive hive : this.hives) {
-                telemetry.addData(hive.name + " isUp: ", hive.isUp);
-
-                for (Fiducial fiducial : hive.fiducials) {
-                    //telemetry.addData("fiducial: ", fiducial.id);
-                    telemetry.addData("  " + fiducial.id + " x:", fiducial.x );
-                    telemetry.addData("  " + fiducial.id + " y:", fiducial.y );
-                    telemetry.addData("  " + fiducial.id + " z:", fiducial.z );
-                }
-            }
         }
     }
 }
