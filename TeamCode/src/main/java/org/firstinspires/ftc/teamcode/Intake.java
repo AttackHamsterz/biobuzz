@@ -56,14 +56,18 @@ public class Intake extends RobotPart{
         if(!ssom.ignoreGamepad){
             // The drive intakes with the left and right trigger while
             // driving.  To fire they hold down the left and right bumpers.
-            if(ssom.gamepad1.left_bumper)
+            if (ssom.gamepad1.left_trigger > 0.01)
+                pollenMotor.setPower(ssom.gamepad1.left_trigger);
+            else if(ssom.gamepad1.left_bumper)
                 pollenMotor.setPower(POLLEN_LAUNCH_POWER);
             else
-                pollenMotor.setPower(ssom.gamepad1.left_trigger);
-            if(ssom.gamepad1.right_bumper)
+                pollenMotor.setPower(0);
+            if(ssom.gamepad1.right_trigger > 0.01)
+                nectarMotor.setPower(ssom.gamepad1.right_trigger);
+            else if(ssom.gamepad1.right_bumper)
                 nectarMotor.setPower(NECTAR_LAUNCH_POWER);
             else
-                nectarMotor.setPower(ssom.gamepad1.right_trigger);
+                nectarMotor.setPower(0);
         }
     }
 

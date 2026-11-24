@@ -22,20 +22,25 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.pedro.HamFollower;
 
-@Autonomous(name = "Auto: Close", group = "Robot")
+@Autonomous(name = "Auto: All", group = "A")
 @Disabled
 public class BioBuzzAutoOpMode extends AutoOpMode {
 
-    public static final long CENTER_START = 0L;
     public static final long OFF_CENTER_START = 1L;
-    public static final long SHOOT_FIRST = (1L << 1);
-    public static final long BLOCK_FIRST_DROP = (1L << 2);
+    public static final long CENTER_START = 0L;
+    public static final long DISABLE_NON_FLOWER_SHOOT = (1L << 1);
+    public static final long NON_FLOWER_SHOOT = 0L;
+    public static final long DISABLE_BLOCK = (1L << 2);
+    public static final long BLOCK = 0L;
     public static final long VISIT_GARDEN = (1L << 3);
     public static final long VISIT_CLOSE_FLOWER = (1L << 4);
     public static final long VISIT_FAR_FLOWER = (1L << 5);
-    public static final long SHOOT_SECOND = (1L << 6);
-    public static final long FAR_PARK = (1L << 7);
-    public static final long VIA_SAFE_TUNNEL = (1L << 8);
+    public static final long DISABLE_FLOWER_SHOOT = (1L << 6);
+    public static final long FLOWER_SHOOT = 0L;
+    public static final long PARK_FAR = (1L << 7);
+    public static final long PARK_NEAR = 0;
+    public static final long VIA_OUTSIDE = (1L << 8);
+    public static final long VIA_TUNNEL = 0;
     public static final long BLUE = (1L << 62);
     public static final long RED = 0;
 
@@ -49,7 +54,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     // Timings in ms. Read when start() builds the schedule, so anything that
     // sets them during INIT (a subclass or a Driver Station selector) takes effect.
     protected long startDelayMs = 0;    // wait before moving, to stay clear of a partner
-    protected long blockWaitMs = 3000;  // wait at the block pose for the hive to tip
+    protected long BLOCK_WAIT_MS = 3000;  // wait at the block pose for the hive to tip
 
     // Settle check: how close counts as "arrived" before a mechanism acts. Pedro's follow()
     // finishes at the end of the path, while the robot is still moving, so steps that need the
@@ -73,29 +78,21 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     // sits about 2 in from the flower there, and a rotated 18 in robot's corners reach 12.7 in
     // from its center instead of 9, so turning in place swings them into the flower. Read in
     // init(), where the back-off pose is built.
-    protected double farFlowerBackoffInches = 5.0;
+    protected double flowerBackoffInches = 5.0;
 
     private Pose startPose;
     private Pose blockPose;
+    private Pose nonFlowerShootPose;
+    private Pose flowerShootPose;
     private Pose closeFlowerPose;
     private Pose closeExtraFlowerPose;
+    private Pose closeFlowerBackoffPose;
     private Pose farFlowerPose;
     private Pose farExtraFlowerPose;
     private Pose farFlowerBackoffPose;
-    private Pose safeCloseTunnelPose;
-    private Pose safeFarTunnelPose;
-    private Pose safeFarOutsidePose;
-    private Pose safeCloseOutsidePose;
-    private Pose shootCloseOutsidePose;
-    private Pose shootCloseInsidePose;
-    private Pose shootFarOutsidePose;
-    private Pose shootFarInsidePose;
+    private Pose nonFlowerSafeTravelPose;
+    private Pose flowerSafeTravelPose;
     private Pose parkPose;
-    private double firstShotAngleDegrees;
-    private double secondShotAngleDegrees;
-    private double firstShotDistance;
-    private double secondShotDistance;
-
 
     public BioBuzzAutoOpMode(long config) {
         this.ignoreGamepad = true;
@@ -107,12 +104,12 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         return (OFF_CENTER_START & config) != 0;
     }
 
-    private boolean shootFirst() {
-        return (SHOOT_FIRST & config) != 0;
+    private boolean disableNonFlowerShoot() {
+        return (DISABLE_NON_FLOWER_SHOOT & config) != 0;
     }
 
-    private boolean blockFirstDrop() {
-        return (BLOCK_FIRST_DROP & config) != 0;
+    private boolean disableBlock() {
+        return (DISABLE_BLOCK & config) != 0;
     }
 
     private boolean visitGarden() {
@@ -126,80 +123,70 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     private boolean visitFarFlower() {
         return (VISIT_FAR_FLOWER & config) != 0;
     }
-    private boolean shootSecond() {
-        return (SHOOT_SECOND & config) != 0;
+    private boolean disableFlowerShoot() {
+        return (DISABLE_FLOWER_SHOOT & config) != 0;
     }
 
     private boolean farPark() {
-        return (FAR_PARK & config) != 0;
+        return (PARK_FAR & config) != 0;
     }
 
-    private boolean viaSafeTunnel() {
-        return (VIA_SAFE_TUNNEL & config) != 0;
+    private boolean viaOutside() {
+        return (VIA_OUTSIDE & config) != 0;
     }
 
     // Red is on the left side when facing from the audience and contains 0,0
     // Blue is on the right side when facing from the audience and contains (144, 144)
     @Override
     public void init() {
-        final double centerStartPoseX = 62.0;
-        final double centerStartPoseY = 9.0;
-        final double centerStartPoseAngle = 90.0;
+        // Starting positions
+        final double centerStartX = 62.0;
+        final double centerStartY = 9.0;
+        final double centerStartAngle = 90.0;
 
-        final double offCenterStartPoseX = 38.0;
-        final double offCenterStartPoseY = 9.0;
-        final double offCenterStartPoseAngle = 90.0;
+        final double offCenterStartX = 38.0;
+        final double offCenterStartY = 9.0;
+        final double offCenterStartAngle = 90.0;
 
-        final double centerBlockPoseX = 62.0;
-        final double centerBlockPoseY = 21.0;
-        final double centerBlockPoseAngle = 190.0;
+        // Blocking positions to collect falls
+        final double centerBlockX = 60.0;
+        final double centerBlockY = 20.0;
+        final double centerBlockAngle = 190.0;
 
-        final double offCenterBlockPoseX = 38.0;
-        final double offCenterBlockPoseY = 21.0;
-        final double offCenterBlockPoseAngle = 170.0;
+        final double offCenterBlockX = 38.0;
+        final double offCenterBlockY = 14.0;
+        final double offCenterBlockAngle = 160.0;
 
-        final double closeFlowerPoseX = 15;
-        final double closeFlowerPoseY = 46.0;
-        final double closeFlowerPoseAngle = 180.0;
-        final double closeExtraFlowerPoseX = closeFlowerPoseX-2;
+        // Close flower positions
+        final double closeFlowerX = 15;
+        final double closeFlowerY = 46.0;
+        final double closeFlowerAngle = 180.0;
+        final double closeExtraFlowerX = closeFlowerX-2;
 
-        final double farFlowerPoseX = 49.0;
-        final double farFlowerPoseY = 127;
-        final double farFlowerPoseAngle = 90.0;
-        final double farExtraFlowerPoseY = farFlowerPoseY+2;
+        // Far flower positions
+        final double farFlowerX = 49.0;
+        final double farFlowerY = 127;
+        final double farFlowerAngle = 90.0;
+        final double farExtraFlowerY = farFlowerY+2;
 
-        final double shootCloseInsidePoseX = 35.0;
-        final double shootCloseInsidePoseY = 10.0;
-        final double shootCloseInsidePoseAngle = 90.0;
+        // Positions for safe travels
+        final double safeNonFlowerOutsideX = 35.0;
+        final double safeNonFlowerOutsideY = 35.0;
+        final double safeNonFlowerOutsideAngle = 90.0;
 
-        final double shootFarInsidePoseX = 35.0;
-        final double shootFarInsidePoseY = 110.0;
-        final double shootFarInsidePoseAngle = 90.0;
+        final double safeNonFlowerTunnelX = 60.0;
+        final double safeNonFlowerTunnelY = 35.0;
+        final double safeNonFlowerTunnelAngle = 90.0;
 
-        final double shootCloseOutsidePoseX = 57.0;
-        final double shootCloseOutsidePoseY = 10.0;
-        final double shootCloseOutsidePoseAngle = 90.0;
+        final double safeFlowerOutsideX = 35.0;
+        final double safeFlowerOutsideY = 110.0;
+        final double safeFlowerOutsideAngle = 90.0;
 
-        final double shootFarOutsidePoseX = 57.0;
-        final double shootFarOutsidePoseY = 110.0;
-        final double shootFarOutsidePoseAngle = 90.0;
+        final double safeFlowerTunnelX = 60.0;
+        final double safeFlowerTunnelY = 110.0;
+        final double safeFlowerTunnelAngle = 90.0;
 
-        final double safeCloseTunnelPoseX = 35.0;
-        final double safeCloseTunnelPoseY = 110.0;
-        final double safeCloseTunnelPoseAngle = 90.0;
-        
-        final double safeFarTunnelPoseX = 62.0;
-        final double safeFarTunnelPoseY = 106.0;
-        final double safeFarTunnelPoseAngle = 90.0;
-
-        final double safeCloseOutsidePoseX = 35.0;
-        final double safeCloseOutsidePoseY = 35.0;
-        final double safeCloseOutsidePoseAngle = 90.0;
-
-        final double safeFarOutsidePoseX = 35.0;
-        final double safeFarOutsidePoseY = 106.0;
-        final double safeFarOutsidePoseAngle = 90.0;
-
+        // Parking positions
         final double farParkX = 15;
         final double farParkY = 122.0;
         final double farParkAngle = 270.0;
@@ -209,47 +196,48 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double closeParkAngle = 270.0;
 
         if (offCenterStart()) {
-            startPose = poseFactory.of(offCenterStartPoseX, offCenterStartPoseY, offCenterStartPoseAngle);
-            blockPose = poseFactory.of(offCenterBlockPoseX, offCenterBlockPoseY, offCenterBlockPoseAngle);
-            firstShotAngleDegrees = 170;
-            secondShotAngleDegrees = 170;
-            firstShotDistance = 62;
-            secondShotDistance = 62;
+            startPose = poseFactory.of(offCenterStartX, offCenterStartY, offCenterStartAngle);
+            blockPose = poseFactory.of(offCenterBlockX, offCenterBlockY, offCenterBlockAngle);
+            nonFlowerShootPose = poseFactory.of(offCenterStartX, offCenterStartY+1.0, offCenterStartAngle);
         } else {
-            startPose = poseFactory.of(centerStartPoseX, centerStartPoseY, centerStartPoseAngle);
-            blockPose = poseFactory.of(centerBlockPoseX, centerBlockPoseY, centerBlockPoseAngle);
-            firstShotAngleDegrees = 185;
-            secondShotAngleDegrees = 185;
-            firstShotDistance = 56;
-            secondShotDistance = 56;
+            startPose = poseFactory.of(centerStartX, centerStartY, centerStartAngle);
+            blockPose = poseFactory.of(centerBlockX, centerBlockY, centerBlockAngle);
+            nonFlowerShootPose = poseFactory.of(centerStartX, centerStartY+1.0, centerStartAngle);
         }
 
-        closeFlowerPose = poseFactory.of(closeFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
-        closeExtraFlowerPose = poseFactory.of(closeExtraFlowerPoseX, closeFlowerPoseY, closeFlowerPoseAngle);
-        shootCloseInsidePose = poseFactory.of(shootCloseInsidePoseX, shootCloseInsidePoseY, shootCloseInsidePoseAngle);
-        shootFarInsidePose = poseFactory.of(shootFarInsidePoseX, shootFarInsidePoseY, shootFarInsidePoseAngle);
-        shootCloseOutsidePose = poseFactory.of(shootCloseOutsidePoseX, shootCloseOutsidePoseY, shootCloseOutsidePoseAngle);
-        shootFarOutsidePose = poseFactory.of(shootFarOutsidePoseX, shootFarOutsidePoseY, shootFarOutsidePoseAngle);
-        safeCloseTunnelPose = poseFactory.of(safeCloseTunnelPoseX, safeCloseTunnelPoseY, safeCloseTunnelPoseAngle);
-        safeFarTunnelPose = poseFactory.of(safeFarTunnelPoseX, safeFarTunnelPoseY, safeFarTunnelPoseAngle);
-        safeCloseOutsidePose = poseFactory.of(safeCloseOutsidePoseX, safeCloseOutsidePoseY, safeCloseOutsidePoseAngle);
-        safeFarOutsidePose = poseFactory.of(safeFarOutsidePoseX, safeFarOutsidePoseY, safeFarOutsidePoseAngle);
+        // Travel poses
+        if (viaOutside()){
+            nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerOutsideX, safeNonFlowerOutsideY, safeNonFlowerOutsideAngle);
+            flowerSafeTravelPose = poseFactory.of(safeFlowerOutsideX, safeFlowerOutsideY, safeFlowerOutsideAngle);
+            flowerShootPose = poseFactory.of(offCenterStartX, offCenterStartY+1.0, offCenterStartAngle-15.0);
+        }else{
+            nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerTunnelX, safeNonFlowerTunnelY, safeNonFlowerTunnelAngle);
+            flowerSafeTravelPose = poseFactory.of(safeFlowerTunnelX, safeFlowerTunnelY, safeFlowerTunnelAngle);
+            flowerShootPose = poseFactory.of(centerStartX, 144-(offCenterStartY+1.0), centerStartAngle+180.0);
+        }
 
-
-        farFlowerPose = poseFactory.of(farFlowerPoseX, farFlowerPoseY, farFlowerPoseAngle);
-        farExtraFlowerPose = poseFactory.of(farFlowerPoseX, farExtraFlowerPoseY, farFlowerPoseAngle);
-        // Straight back from the far flower, opposite the way the robot faces there
+        // Flower poses
+        closeFlowerPose = poseFactory.of(closeFlowerX, closeFlowerY, closeFlowerAngle);
+        closeExtraFlowerPose = poseFactory.of(closeExtraFlowerX, closeFlowerY, closeFlowerAngle);
+        closeFlowerBackoffPose = poseFactory.of(
+                closeFlowerX - flowerBackoffInches * Math.cos(Math.toRadians(closeFlowerAngle)),
+                closeFlowerY - flowerBackoffInches * Math.sin(Math.toRadians(closeFlowerAngle)),
+                closeFlowerAngle);
+        farFlowerPose = poseFactory.of(farFlowerX, farFlowerY, farFlowerAngle);
+        farExtraFlowerPose = poseFactory.of(farFlowerX, farExtraFlowerY, farFlowerAngle);
         farFlowerBackoffPose = poseFactory.of(
-                farFlowerPoseX - farFlowerBackoffInches * Math.cos(Math.toRadians(farFlowerPoseAngle)),
-                farFlowerPoseY - farFlowerBackoffInches * Math.sin(Math.toRadians(farFlowerPoseAngle)),
-                farFlowerPoseAngle);
+                farFlowerX - flowerBackoffInches * Math.cos(Math.toRadians(farFlowerAngle)),
+                farFlowerY - flowerBackoffInches * Math.sin(Math.toRadians(farFlowerAngle)),
+                farFlowerAngle);
 
+        // Parking
         if (farPark()) {
             parkPose = poseFactory.of(farParkX, farParkY, farParkAngle);
         } else {
             parkPose = poseFactory.of(closeParkX, closeParkY, closeParkAngle);
         }
 
+        // Initialize
         super.init();
         motion.follower.setPose(startPose);
     }
@@ -274,92 +262,69 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     //   10 = backing off the far flower, 11 = safe tunnel
     @Override
     public void buildSchedule() {
+        Command driveToNonFlowerShoot = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Pose nextPose = nonFlowerShootPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+        });
+        Command driveToFlowerShoot = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Pose nextPose = flowerShootPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+        });
         Command driveToBlock = lazy(() -> {
             step = 3;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, blockPose).linear(currentPose, blockPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = blockPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToCloseFlower = lazy(() -> {
             step = 5;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, closeFlowerPose).linear(currentPose, closeFlowerPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = closeFlowerPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToCloseExtraFlower = lazy(() -> {
-            step = 5;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, closeExtraFlowerPose).linear(currentPose, closeExtraFlowerPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = closeExtraFlowerPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+        });
+        Command backOffCloseFlower = lazy(() -> {
+            Pose currentPose = motion.follower.pose();
+            Pose nextPose = closeFlowerBackoffPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToFarFlower = lazy(() -> {
             step = 6;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, farFlowerPose).linear(currentPose, farFlowerPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = farFlowerPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToFarExtraFlower = lazy(() -> {
-            step = 6;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, farExtraFlowerPose).linear(currentPose, farExtraFlowerPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = farExtraFlowerPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command backOffFarFlower = lazy(() -> {
-            step = 10;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, farFlowerBackoffPose).linear(currentPose, farFlowerBackoffPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = farFlowerBackoffPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToPark = lazy(() -> {
             step = 7;
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, parkPose).linear(currentPose, parkPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = parkPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
-        // Waypoint: passes straight through, no settle or pause
-        Command driveToShootCloseInside = lazy(() -> {
+        Command driveToNonFlowerTravel = lazy(() -> {
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, shootCloseInsidePose).linear(currentPose, shootCloseInsidePose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = nonFlowerSafeTravelPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
-
-        Command driveToShootFarInside = lazy(() -> {
+        Command driveToFlowerTravel = lazy(() -> {
             Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, shootFarInsidePose).linear(currentPose, shootFarInsidePose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
-        });
-
-        Command driveToShootCloseOutside = lazy(() -> {
-            Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, shootCloseOutsidePose).linear(currentPose, shootCloseOutsidePose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
-        });
-        Command driveToShootFarOutside = lazy(() -> {
-            Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, shootFarOutsidePose).linear(currentPose, shootFarOutsidePose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
-        });
-
-        Command driveToSafeCloseTunnel = lazy(() -> {
-            Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, safeCloseTunnelPose).linear(currentPose, safeCloseTunnelPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
-        });
-        Command driveToSafeFarTunnel = lazy(() -> {
-            step = 11;
-            Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, safeFarTunnelPose).linear(currentPose, safeFarTunnelPose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
-        });
-        Command driveToSafeCloseOutside = lazy(() -> {
-            Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, safeCloseOutsidePose).linear(currentPose, safeCloseOutsidePose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
-        });
-        Command driveToSafeFarOutside = lazy(() -> {
-            Pose currentPose = motion.follower.pose();
-            Path dynamicPath = line(currentPose, safeFarOutsidePose).linear(currentPose, safeFarOutsidePose, turnEndFraction);
-            return follow(motion.follower, dynamicPath);
+            Pose nextPose = flowerSafeTravelPose;
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToGarden = lazy(() -> {
             step = 4;
@@ -368,23 +333,17 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             return follow(motion.follower, dynamicPath);
         });
         
-        Command nothing = instant(() -> {
-        });
+        Command nothing = instant(() -> {});
         Command startIntake = instant(() -> intake.setPower(1.0));
         Command stopIntake = instant(() -> intake.setPower(0.0));
-        Command startFlywheelFirstShot = instant(() -> launcher.setRPMFromDistance(firstShotDistance,0,0));
-        Command startFlywheelSecondShot = instant(() -> launcher.setRPMFromDistance(secondShotDistance,0,0));
-        Command standbyFlywheel = instant(() -> launcher.setRPMFromDistance(20,0,0));
-        Command alignTurretFirstHive = instant(() -> launcher.setLaunchAngleDegrees(firstShotAngleDegrees));
-        Command alignTurretSecondHive = instant(() -> launcher.setLaunchAngleDegrees(secondShotAngleDegrees));
+        Command startFlywheel = instant(() -> launcher.setRPMFromDistance(1.0,0,0));
+        Command standbyFlywheel = instant(() -> launcher.setRPMFromDistance(0.5,0,0));
         Command allowPollen = instant(() -> ballStopper.allowPollen());
         Command allowNectar = instant(() -> ballStopper.allowNectar());
         Command allowAll = instant(() -> ballStopper.allowAll());
         Command stopAll = instant(()-> ballStopper.stopAll());
-        Command runLauncherFirstHive = parallel(startFlywheelFirstShot, alignTurretFirstHive).until(() -> launcher.launchReady());
-        Command runLauncherSecondHive = parallel(startFlywheelSecondShot, alignTurretSecondHive).until(() -> launcher.launchReady());
-        Command launchAllFirstHive = sequential(runLauncherFirstHive, allowAll, waitMs(3000), stopAll, standbyFlywheel);
-        Command launchAllSecondHive = sequential(runLauncherSecondHive, allowAll, waitMs(3000), stopAll, standbyFlywheel);
+        Command runLauncher = startFlywheel.until(() -> launcher.launchReady());
+        Command launchAll = sequential(runLauncher, allowAll, waitMs(3000), stopAll, standbyFlywheel);
 
         Command zeroSwerve = race(repeat(instant(() -> ((HamFollower) motion.follower).zero()), 1000),
                 waitMs(ZERO_DURATION_MS));
@@ -395,25 +354,26 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         Command startDelay = sequential(
                 instant(() -> step = 1),
                 waitMs(startDelayMs));
-        //Shoot delay
-        //flower intake delay
-        Command maybeShootFirstHive = conditional(this::shootFirst,
-                sequential(driveToShootCloseInside, launchAllFirstHive),
-                nothing);
-        Command maybeShootSecondHive = conditional(this::shootSecond,
-                sequential(driveToShootFarOutside, launchAllSecondHive),
-                nothing);
+
+        Command maybeNonFlowerShoot = conditional(this::disableNonFlowerShoot,
+                nothing,
+                sequential(driveToNonFlowerShoot, launchAll));
+        Command maybeFlowerShoot = conditional(this::disableFlowerShoot,
+                nothing,
+                sequential(driveToFlowerShoot, launchAll));
+
         Command closeFlowerIntake = sequential(startIntake, race(waitMs(3000), driveToCloseExtraFlower), stopIntake);
         Command farFlowerIntake = sequential(startIntake, race(waitMs(3000), driveToFarExtraFlower), stopIntake);
-        Command maybeBlock = conditional(this::blockFirstDrop,
+        Command maybeBlock = conditional(this::disableBlock,
+                nothing,
                 sequential(
                         parallel(driveToBlock, startIntake),
-                        // Wait for hive to tip, either timer or fiducial reading, and wait 2 secs to block
-                        waitMs(blockWaitMs)),
-                nothing);
-        Command maybeSafeTunnel = conditional(this::viaSafeTunnel,
-                sequential(driveToSafeCloseTunnel, driveToSafeFarTunnel),
-                nothing);
+                        // Wait for hive to tip, either timer or fiducial reading, and wait BLOCK_WAIT_MS
+                        waitMs(BLOCK_WAIT_MS),
+                        stopIntake));
+        Command travelNonFlowerToFlower = sequential(driveToNonFlowerTravel, driveToFlowerTravel);
+        Command travelFlowerToNonFlower = sequential(driveToFlowerTravel, driveToNonFlowerTravel);
+
         Command maybeGarden = conditional(this::visitGarden,
                 driveToGarden,
                 nothing);
@@ -424,7 +384,6 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 sequential(driveToFarFlower, settleAt(farFlowerPose), farFlowerIntake,
                         backOffFarFlower),
                 nothing);
-        //spinning up, ball stopper, hive drop check
 
         // The overall schedule
         schedule(
@@ -435,20 +394,20 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                         sequential(
                                 standbyFlywheel,
                                 startDelay,
-                                maybeShootFirstHive,
+                                maybeNonFlowerShoot,
                                 maybeBlock,
                                 //check hive drop
                                 maybeGarden,
                                 maybeCloseFlower,
-                                maybeShootFirstHive,
-                                maybeSafeTunnel,
+                                travelNonFlowerToFlower,
+                                maybeFlowerShoot,
                                 maybeFarFlower,
-                                maybeShootSecondHive,
+                                maybeFlowerShoot,
                                 driveToPark,
                                 // Settle before zeroing: zeroing stops the hold, so any error left here stays
                                 settleAt(parkPose),
                                 waitMs(pointPauseMs),
-                                instant(() -> step = 8),
+                                instant(() -> step = 99),
                                 zeroSwerve)));
     }
 }

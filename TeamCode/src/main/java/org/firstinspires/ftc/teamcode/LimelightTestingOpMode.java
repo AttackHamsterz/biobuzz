@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 
 @TeleOp(name = "Lime Light Test", group = "Robot")
-
+@Disabled
 public class LimelightTestingOpMode extends StandardSetupOpMode {
 
     private Eye eye;

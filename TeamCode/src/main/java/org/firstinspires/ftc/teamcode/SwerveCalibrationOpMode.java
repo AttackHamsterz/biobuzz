@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.pedro.HamSwerve;
 
 import java.util.List;
 
-@TeleOp(name="TeleOp: Swerve Calibration", group="Robot")
+@TeleOp(name="TeleOp: Swerve Calibration", group="Z")
 public class SwerveCalibrationOpMode extends OpMode {
 
     private List<LynxModule> allHubs;

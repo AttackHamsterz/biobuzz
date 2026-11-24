@@ -1,12 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import java.util.Map;
 import java.util.concurrent.Executors;
 
 @TeleOp(name = "Launcher Test", group = "Robot")
+@Disabled
 public class LauncherTestOpMode extends StandardSetupOpMode {
 
     @Override

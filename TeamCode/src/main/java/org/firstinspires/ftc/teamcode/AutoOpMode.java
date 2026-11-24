@@ -6,7 +6,7 @@ import com.pedropathing.ivy.Scheduler;
 
 import org.firstinspires.ftc.teamcode.pedro.RunLog;
 
-@Autonomous(name = "Auto", group = "Robot")
+@Autonomous(name = "Auto", group = "A")
 @Disabled
 
 public abstract class AutoOpMode extends StandardSetupOpMode {
