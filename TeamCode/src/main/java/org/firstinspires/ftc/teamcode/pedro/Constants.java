@@ -209,7 +209,11 @@ public class Constants {
     // 0.58-0.74 power (0 -> 33 in/s in 0.25 s, ~130 in/s^2 average, peaks 200-380). Not the real
     // acceleration: coast() asks for feedforward at (speed + this x loop dt), and the drive responds
     // in ~0.15-0.25 s, so at ~44 Hz the real ramp is roughly 1/9 of this (inferred; check the log).
-    public static final double MAX_ACCELERATION = 500.0;
+    // 2026-11-24: 500 -> 1000, NOT yet robot-tested. The 20:55 auto log showed the cap binding:
+    // (tgtVel - speed) / dt sat at ~450-600 while speeding up, so launches ran at only 0.3-0.5
+    // power. Judge by time to settled at each stop plus settle error vs that run; revert to 500
+    // if stops get worse or the pods scrub at launch.
+    public static final double MAX_ACCELERATION = 1000.0;
     // Deceleration and end braking: the PRECISE tune (4bd0312 values), restored 2026-11-08 for
     // autonomous. Judge changes here on the Point Test by time from leaving to settled at the
     // target plus final settle error, not by path time.
@@ -227,7 +231,12 @@ public class Constants {
     // because it gave the best Point Test, even though it is wrong as physics: Foresight sends
     // exactly 0 power when it thinks the robot can coast to the end at this rate, and with brakes
     // on that happens early (4-8% of path loops), a hard brake.
-    public static final double NATURAL_DECELERATION = 27.418;
+    // 2026-11-24: trying 66.0 alone (MAX_DECELERATION and BRAKE_AGGRESSION unchanged). The
+    // follower plans its stop from the coast-predicted pose, v^2/(2*this) ahead, so 27.418
+    // reserved about twice the real stopping distance and the robot braked from mid-leg
+    // (20:10 auto log: target speed matched sqrt(2*27.4*(rem - v^2/54.8)) row for row).
+    // Revert to 27.418 if arrival error at the auto stops gets worse.
+    public static final double NATURAL_DECELERATION = 66.0;
     // Profile used to slow down toward the end (the comfort knob).
     public static final double MAX_DECELERATION = 27.418;
     // Foresight brakeAggression, default 1.0. Higher = SOFTER: it divides the distance left when
