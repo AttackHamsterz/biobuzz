@@ -370,20 +370,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                         // Wait for hive to tip, either timer or fiducial reading, and wait BLOCK_WAIT_MS
                         waitMs(BLOCK_WAIT_MS),
                         stopIntake));
-        // Each leg stops at its end, so skip waypoints that sit on a straight line. On the tunnel
-        // route both travel poses and the tunnel shoot spot are on the x = 62 lane: from the lane
-        // (block or first shoot spot) drive straight on, and if the shoot spot comes next, drive
-        // straight to it. From off the lane (e.g. the close flower) keep the waypoints.
-        Command travelNonFlowerToFlower = lazy(() -> {
-            if (viaOutside())
-                return sequential(driveToNonFlowerTravel, driveToFlowerTravel);
-            boolean inLane = Math.abs(motion.follower.pose().x() - nonFlowerSafeTravelPose.x()) < 4.0;
-            boolean shootNext = !disableFlowerShoot();
-            if (inLane && shootNext) return nothing;
-            if (inLane) return driveToFlowerTravel;
-            if (shootNext) return driveToNonFlowerTravel;
-            return sequential(driveToNonFlowerTravel, driveToFlowerTravel);
-        });
+        Command travelNonFlowerToFlower = sequential(driveToNonFlowerTravel, driveToFlowerTravel);
         Command travelFlowerToNonFlower = sequential(driveToFlowerTravel, driveToNonFlowerTravel);
 
         Command maybeGarden = conditional(this::visitGarden,
