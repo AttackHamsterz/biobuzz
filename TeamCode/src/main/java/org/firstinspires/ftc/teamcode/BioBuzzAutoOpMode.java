@@ -209,11 +209,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         if (viaOutside()){
             nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerOutsideX, safeNonFlowerOutsideY, safeNonFlowerOutsideAngle);
             flowerSafeTravelPose = poseFactory.of(safeFlowerOutsideX, safeFlowerOutsideY, safeFlowerOutsideAngle);
-            flowerShootPose = poseFactory.of(offCenterStartX, offCenterStartY+1.0, offCenterStartAngle-15.0);
+            flowerShootPose = poseFactory.of(offCenterStartX, 144-(offCenterStartY+4.0), offCenterStartAngle-15.0);
         }else{
             nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerTunnelX, safeNonFlowerTunnelY, safeNonFlowerTunnelAngle);
             flowerSafeTravelPose = poseFactory.of(safeFlowerTunnelX, safeFlowerTunnelY, safeFlowerTunnelAngle);
-            flowerShootPose = poseFactory.of(centerStartX, 144-(offCenterStartY+1.0), centerStartAngle+180.0);
+            flowerShootPose = poseFactory.of(centerStartX, 144-(offCenterStartY+4.0), centerStartAngle+180.0);
         }
 
         // Flower poses
