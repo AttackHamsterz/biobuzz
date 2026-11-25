@@ -209,7 +209,11 @@ public class Constants {
     // 0.58-0.74 power (0 -> 33 in/s in 0.25 s, ~130 in/s^2 average, peaks 200-380). Not the real
     // acceleration: coast() asks for feedforward at (speed + this x loop dt), and the drive responds
     // in ~0.15-0.25 s, so at ~44 Hz the real ramp is roughly 1/9 of this (inferred; check the log).
-    public static final double MAX_ACCELERATION = 500.0;
+    // 2026-11-24: 500 -> 1000, NOT yet robot-tested. The 20:55 auto log showed the cap binding:
+    // (tgtVel - speed) / dt sat at ~450-600 while speeding up, so launches ran at only 0.3-0.5
+    // power. Judge by time to settled at each stop plus settle error vs that run; revert to 500
+    // if stops get worse or the pods scrub at launch.
+    public static final double MAX_ACCELERATION = 1000.0;
     // Deceleration and end braking: the PRECISE tune (4bd0312 values), restored 2026-11-08 for
     // autonomous. Judge changes here on the Point Test by time from leaving to settled at the
     // target plus final settle error, not by path time.
