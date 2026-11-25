@@ -209,11 +209,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         if (viaOutside()){
             nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerOutsideX, safeNonFlowerOutsideY, safeNonFlowerOutsideAngle);
             flowerSafeTravelPose = poseFactory.of(safeFlowerOutsideX, safeFlowerOutsideY, safeFlowerOutsideAngle);
-            flowerShootPose = poseFactory.of(offCenterStartX, 120, -70.0);
+            flowerShootPose = poseFactory.of(offCenterStartX-3.0, 120, -70.0);
         }else{
             nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerTunnelX, safeNonFlowerTunnelY, safeNonFlowerTunnelAngle);
             flowerSafeTravelPose = poseFactory.of(safeFlowerTunnelX, safeFlowerTunnelY, safeFlowerTunnelAngle);
-            flowerShootPose = poseFactory.of(centerStartX, 120, 180.0);
+            flowerShootPose = poseFactory.of(centerStartX-3.0, 120, -90.0);
         }
 
         // Flower poses
@@ -356,8 +356,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 waitMs(startDelayMs));
 
         Command maybeNonFlowerShoot = conditional(this::disableNonFlowerShoot,
-                nothing,
-                sequential(driveToNonFlowerShoot, launchAll));
+                nothing, launchAll);
         Command maybeFlowerShoot = conditional(this::disableFlowerShoot,
                 nothing,
                 sequential(driveToFlowerShoot, launchAll));
