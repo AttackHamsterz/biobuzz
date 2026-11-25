@@ -227,7 +227,12 @@ public class Constants {
     // because it gave the best Point Test, even though it is wrong as physics: Foresight sends
     // exactly 0 power when it thinks the robot can coast to the end at this rate, and with brakes
     // on that happens early (4-8% of path loops), a hard brake.
-    public static final double NATURAL_DECELERATION = 27.418;
+    // 2026-11-24: trying 66.0 alone (MAX_DECELERATION and BRAKE_AGGRESSION unchanged). The
+    // follower plans its stop from the coast-predicted pose, v^2/(2*this) ahead, so 27.418
+    // reserved about twice the real stopping distance and the robot braked from mid-leg
+    // (20:10 auto log: target speed matched sqrt(2*27.4*(rem - v^2/54.8)) row for row).
+    // Revert to 27.418 if arrival error at the auto stops gets worse.
+    public static final double NATURAL_DECELERATION = 66.0;
     // Profile used to slow down toward the end (the comfort knob).
     public static final double MAX_DECELERATION = 27.418;
     // Foresight brakeAggression, default 1.0. Higher = SOFTER: it divides the distance left when
