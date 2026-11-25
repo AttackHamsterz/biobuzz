@@ -6,6 +6,9 @@ import com.pedropathing.ivy.Scheduler;
 
 import org.firstinspires.ftc.teamcode.pedro.RunLog;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 @Autonomous(name = "Auto", group = "A")
 @Disabled
 
@@ -38,6 +41,16 @@ public abstract class AutoOpMode extends StandardSetupOpMode {
         // and would wipe out the start pose set during init()
         log = new RunLog(motion.follower, "auto_" + getClass().getSimpleName());
         buildSchedule();
+
+        // Start parts
+        for (Map.Entry<RobotPart, Integer> entry : partsList) {
+            entry.getKey().start();
+        }
+
+        // Launch the robot part loops
+        for (Map.Entry<RobotPart, Integer> entry : partsList) {
+            threadPool.scheduleWithFixedDelay(entry.getKey()::loop, 0, entry.getValue(), TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
