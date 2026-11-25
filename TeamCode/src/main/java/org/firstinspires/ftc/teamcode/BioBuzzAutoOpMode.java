@@ -170,19 +170,19 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double farExtraFlowerY = farFlowerY+2;
 
         // Positions for safe travels
-        final double safeNonFlowerOutsideX = 35.0;
+        final double safeNonFlowerOutsideX = 34.0;
         final double safeNonFlowerOutsideY = 35.0;
         final double safeNonFlowerOutsideAngle = 90.0;
 
-        final double safeNonFlowerTunnelX = 60.0;
+        final double safeNonFlowerTunnelX = 62.0;
         final double safeNonFlowerTunnelY = 35.0;
         final double safeNonFlowerTunnelAngle = 90.0;
 
-        final double safeFlowerOutsideX = 35.0;
+        final double safeFlowerOutsideX = 34.0;
         final double safeFlowerOutsideY = 110.0;
         final double safeFlowerOutsideAngle = 90.0;
 
-        final double safeFlowerTunnelX = 60.0;
+        final double safeFlowerTunnelX = 62.0;
         final double safeFlowerTunnelY = 110.0;
         final double safeFlowerTunnelAngle = 90.0;
 
@@ -209,11 +209,11 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         if (viaOutside()){
             nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerOutsideX, safeNonFlowerOutsideY, safeNonFlowerOutsideAngle);
             flowerSafeTravelPose = poseFactory.of(safeFlowerOutsideX, safeFlowerOutsideY, safeFlowerOutsideAngle);
-            flowerShootPose = poseFactory.of(offCenterStartX, 144-(offCenterStartY+4.0), offCenterStartAngle-15.0);
+            flowerShootPose = poseFactory.of(offCenterStartX, 120, -70.0);
         }else{
             nonFlowerSafeTravelPose = poseFactory.of(safeNonFlowerTunnelX, safeNonFlowerTunnelY, safeNonFlowerTunnelAngle);
             flowerSafeTravelPose = poseFactory.of(safeFlowerTunnelX, safeFlowerTunnelY, safeFlowerTunnelAngle);
-            flowerShootPose = poseFactory.of(centerStartX, 144-(offCenterStartY+4.0), centerStartAngle+180.0);
+            flowerShootPose = poseFactory.of(centerStartX, 120, 180.0);
         }
 
         // Flower poses
@@ -282,7 +282,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             step = 5;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = closeFlowerPose;
-            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, 0.05));
         });
         Command driveToCloseExtraFlower = lazy(() -> {
             Pose currentPose = motion.follower.pose();
@@ -298,7 +298,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             step = 6;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = farFlowerPose;
-            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, 0.05));
         });
         Command driveToFarExtraFlower = lazy(() -> {
             Pose currentPose = motion.follower.pose();
@@ -319,12 +319,12 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         Command driveToNonFlowerTravel = lazy(() -> {
             Pose currentPose = motion.follower.pose();
             Pose nextPose = nonFlowerSafeTravelPose;
-            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, 0.05));
         });
         Command driveToFlowerTravel = lazy(() -> {
             Pose currentPose = motion.follower.pose();
             Pose nextPose = flowerSafeTravelPose;
-            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
+            return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, 0.05));
         });
         Command driveToGarden = lazy(() -> {
             step = 4;
