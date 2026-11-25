@@ -28,9 +28,11 @@ public class Motion extends RobotPart {
 
     @Override
     public void start(){
-        follower.setPose(new Pose(0,0,0));
-        follower.manual(0, 0, 0);
-        follower.update();
+        if (!ssom.ignoreGamepad) {
+            follower.setPose(new Pose(0, 0, 0));
+            follower.manual(0, 0, 0);
+            follower.update();
+        }
     }
 
     /**
