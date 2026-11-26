@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.PathSegment;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
@@ -14,6 +15,8 @@ public class Motion extends RobotPart {
 
     private static final double DEAD_ZONE_SIZE = 0.05;
     private static final double EXPONENT = 3.0;
+
+    private boolean turtleMode = false;
 
     public Motion(StandardSetupOpMode ssom){
         this.ssom = ssom;
@@ -53,27 +56,33 @@ public class Motion extends RobotPart {
     @Override
     public void loop() {
         if(!ssom.ignoreGamepad) {
-            if (ssom.gamepad1.start)
-            {
-                follower.manual(0,0,0);
-                return;
+            // In and out of turtle mode
+            if (ssom.gamepad1.touchpadWasPressed()) {
+                turtleMode = !turtleMode;
             }
+
+            // Movement from joysticks
             double rawForward = -ssom.gamepad1.left_stick_y;    // Up on stick is negative but we want the robot to go forward (positive y)
             double rawLateral = -ssom.gamepad1.left_stick_x;     // Left on stick is negative, want positive to match autonomous follower
             double rawHeading = -ssom.gamepad1.right_stick_x;   // Left on stick is negative but we want a positive CCW rotation)
-            double forward = conditionInput(rawForward);
-            double lateral = conditionInput(rawLateral);
-            double heading = conditionInput(rawHeading);
 
-            float scale = 1.0f;
-            if(ssom.gamepad1.left_bumper)
-                scale = 0.5f;
-            else if(ssom.gamepad1.left_trigger > DEAD_ZONE_SIZE)
-                scale = 1.0f - ssom.gamepad1.left_trigger * 0.75f;
+            // Scale applied to driving (turtle mode of course but also slow down when intake is humming)
+            double TURTLE_POWER_SCALE = 0.6;        // Turtle mode max speed
+            double INTAKE_PENALTY_SCALE = 0.4;      // Percent speed to remove when fully intaking
+            double INTAKE_PENALTY_THRESHOLD = 0.7;  // When intakes are running over this percent, slow down
+            double scale = 1.0;
+            if (turtleMode){
+                scale = TURTLE_POWER_SCALE;
+            }
+            else if(ssom.gamepad1.left_trigger > INTAKE_PENALTY_THRESHOLD || ssom.gamepad1.right_trigger > INTAKE_PENALTY_THRESHOLD){
+                double penaltyPercent = Range.clip((Math.max(ssom.gamepad1.left_trigger, ssom.gamepad1.right_trigger) - INTAKE_PENALTY_THRESHOLD) / (1.0 - INTAKE_PENALTY_THRESHOLD),0, 1);
+                scale = 1.0 - penaltyPercent * INTAKE_PENALTY_SCALE;
+            }
 
-            f = forward * scale;
-            s = lateral * scale;
-            t = heading * scale;
+            // Conditioning and application
+            f = conditionInput(rawForward * scale);
+            s = conditionInput(rawLateral * scale);
+            t = conditionInput(rawHeading * scale);
             boolean inDeadzone = (f == 0.0 && s == 0.0 && t == 0.0);
             if (inDeadzone)
                 follower.manual(0, 0, 0);

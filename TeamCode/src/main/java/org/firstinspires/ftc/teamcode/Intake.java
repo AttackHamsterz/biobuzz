@@ -68,6 +68,12 @@ public class Intake extends RobotPart{
                 nectarMotor.setPower(NECTAR_LAUNCH_POWER);
             else
                 nectarMotor.setPower(0);
+
+            // Second driver is in charge of clearing jams
+            if (ssom.gamepad2.left_trigger > 0.01)
+                pollenMotor.setPower(-ssom.gamepad2.left_trigger);
+            if (ssom.gamepad2.right_trigger > 0.01)
+                nectarMotor.setPower(-ssom.gamepad2.right_trigger);
         }
     }
 
