@@ -17,7 +17,12 @@ public class Launcher extends RobotPart{
     private static final double MIN_RPM = 0.0;
     private static final double MAX_RPM = 6000.0;
     private static final double CLOSE_ENOUGH_RPM = 200;
-    private static final double MIN_LAUNCH_VALUE_RPM = 2100;
+    private static final double IDLE_RPM = 0;
+    private static final double MIN_LAUNCH_VALUE_RPM = 3000;
+    private static final double DEFAULT_FLOWER_RPM = 2000;
+    private static final double DELTA_FLOWER_RPM = 100;
+    private static final double DEFAULT_FLOWER_ANGLE = 5;
+    private static final double DELTA_FLOWER_ANGLE = 1;
     private static final double TPS_TO_RPM = 60.0 / TPR;
     private static final double RPM_TO_TPS = TPR / 60.0;
     private double MIN_THRESHOLD_DISTANCE = 0.5;
@@ -59,6 +64,7 @@ public class Launcher extends RobotPart{
     private final CRServo launchServo;
     private final PiecewiseController launchServoController; // PID uses degrees (tune PIDF for degree error)
     private double launchAngleDegrees;
+    private double flowerAngle = DEFAULT_FLOWER_ANGLE;
 
     // Enumerations and definitions
     public enum TargetMode {
@@ -82,6 +88,7 @@ public class Launcher extends RobotPart{
 
     // RPM calculations
     private double currentRPM;
+    private double flowerRPM;
 
     public Launcher(StandardSetupOpMode ssom){
         this.ssom = ssom;
@@ -93,17 +100,17 @@ public class Launcher extends RobotPart{
         //Default to launchable until distance is outside the range.
         isLaunchable = true;
 
-        // Dummy motor has our encoder
+        // Dummy motor has our servo encoder
         dummyMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         dummyMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         // Setup PID and motor
         launchMotor.setVelocityPIDFCoefficients(kP, kI, kD, kF);
         launchMotor.setDirection(DcMotorEx.Direction.REVERSE);
+        launchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        launchMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
         // Setup launch servo and digital encoder
-        //launchMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        //launchMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         launchServoController = Controller.piecewise(Controller.pid(TURN_Small_P, TURN_Small_I, TURN_Small_D));
         if(TURN_Small_F != 0)
             launchServoController.plus(Controller.proportionalFeedforward(TURN_Small_F));
@@ -111,9 +118,10 @@ public class Launcher extends RobotPart{
         launchAngleDegrees = 0;
 
         // Initial Motor speeds
-        targetVelocityRPM = 0;
+        targetVelocityRPM = IDLE_RPM;
         interimVelocityRPM = 0;
         currentVelocityRPM = 0;
+        flowerRPM = DEFAULT_FLOWER_RPM;
 
         velocityRPM = new ArrayList<>(List.of(
                 new RPMEntry(-50,-1500),
@@ -127,17 +135,8 @@ public class Launcher extends RobotPart{
 
         // Table of distances in meters to RPM
         distanceRPM = new ArrayList<>(List.of(
-                new RPMEntry(0.0, 0.0),
-                new RPMEntry(0.25, 1500.0),
-                new RPMEntry(0.5, 2400.0),
-                new RPMEntry(1.0, 2450.0),
-                new RPMEntry(1.25, 2600.0),
-                new RPMEntry(1.5, 2800.0),
-                new RPMEntry(1.75, 3000.0),
-                new RPMEntry(2.00, 3200.0),
-                new RPMEntry(2.25, 3400.0),
-                new RPMEntry(2.5, 3700.0),
-                new RPMEntry(2.75, 4000.0)
+                new RPMEntry(1.0, 3000),
+                new RPMEntry(2.00, 3500)
         ));
     }
 
@@ -172,8 +171,15 @@ public class Launcher extends RobotPart{
         launchServo.setPower(turnPower);
     }
 
+    public void idle(){
+        targetVelocityRPM = isFlowerMode() ? flowerRPM : IDLE_RPM;
+    }
+
     public void setTargetMode(TargetMode targetMode){
         target = targetMode;
+    }
+    public boolean isFlowerMode(){
+        return target == TargetMode.FLOWER;
     }
 
     public void setRPMFromDistance(double distance, double extraRPM){
@@ -181,6 +187,9 @@ public class Launcher extends RobotPart{
     }
 
     public void setRPMFromDistance(double distance, double extraRPM, double V) {
+        // Flower mode, ignore inputs
+        if (target == TargetMode.FLOWER) return;
+
         double rpm = 0;
         double vxrpm = 0;
 
@@ -237,43 +246,67 @@ public class Launcher extends RobotPart{
     @Override
     public void loop() {
         // First step, make sure the launch servo is turned to the correct angle
-        if(ssom.eye.activeTarget()){
+        if(target == TargetMode.HIVE && ssom.eye.activeTarget()){
             setLaunchAngleDegrees(-ssom.eye.getTargetAngleDeg());
         }
 
-        // User 2 can override to get the camera aiming back on track
+        // Flower processing
         if(!ssom.ignoreGamepad) {
-            if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05)
+            // Switch modes
+            if(ssom.gamepad2.touchpadWasPressed()){
+                if(target == TargetMode.HIVE) {
+                    target = TargetMode.FLOWER;
+                    targetVelocityRPM = flowerRPM;
+                    setLaunchAngleDegrees(-flowerAngle);
+                }
+                else{
+                    target = TargetMode.HIVE;
+                    targetVelocityRPM = IDLE_RPM;
+                }
+            }
+
+            if(target == TargetMode.FLOWER) {
+                if(ssom.gamepad2.dpadUpWasPressed()){
+                    flowerRPM += DELTA_FLOWER_RPM;
+                    targetVelocityRPM = flowerRPM;
+                }
+                if(ssom.gamepad2.dpadDownWasPressed()){
+                    flowerRPM -= DELTA_FLOWER_RPM;
+                    targetVelocityRPM = flowerRPM;
+                }
+                if(ssom.gamepad2.dpadLeftWasPressed()){
+                    flowerAngle += DELTA_FLOWER_ANGLE;
+                    setLaunchAngleDegrees(flowerAngle);
+                }
+                if(ssom.gamepad2.dpadRightWasPressed()){
+                    flowerAngle -= DELTA_FLOWER_ANGLE;
+                    setLaunchAngleDegrees(flowerAngle);
+                }
+                if(ssom.gamepad2.leftBumperWasPressed()) {
+                    setLaunchAngleDegrees(flowerAngle);
+                }
+                if(ssom.gamepad2.rightBumperWasPressed()) {
+                    setLaunchAngleDegrees(-flowerAngle);
+                }
+            }
+            // User 2 can override launch angle to get the camera aiming back on track
+            else if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05)
                 setLaunchAngleDegrees(-Math.toDegrees(Math.atan2(-ssom.gamepad2.left_stick_y, -ssom.gamepad2.left_stick_x)) + 90.0);
         }
         updateLaunchAngle();
 
-        // Second step, make sure the launch motor is spinning at the right speed
-        if(!ssom.ignoreGamepad){
-            launchMotor.setPower(ssom.gamepad1.left_bumper? 1.0 : 0.0);
+        // Slew interimVelocityRPM toward targetVelocityRPM
+        // Ramp UP gradually to limit inrush current; ramp DOWN instantly
+        if (interimVelocityRPM < targetVelocityRPM) {
+            interimVelocityRPM = Math.min(targetVelocityRPM, interimVelocityRPM + SLEW_UP_RPM_PER_TICK);
+        } else {
+            interimVelocityRPM = targetVelocityRPM;
         }
-/*
-            // Slew interimVelocityRPM toward targetVelocityRPM
-            // Ramp UP gradually to limit inrush current; ramp DOWN instantly
-            if (interimVelocityRPM < targetVelocityRPM) {
-                interimVelocityRPM = Math.min(targetVelocityRPM, interimVelocityRPM + SLEW_UP_RPM_PER_TICK);
-            } else {
-                interimVelocityRPM = targetVelocityRPM;
-            }
 
-            // Send slewed velocity to motor
-            launchMotor.setVelocity(interimVelocityRPM * RPM_TO_TPS);
-            currentVelocityRPM = launchMotor.getVelocity() * TPS_TO_RPM;
-
-
-        // Stop everything
-        launchMotor.setVelocity(0);
-        targetVelocityRPM = 0;
-        interimVelocityRPM = 0;
-        currentVelocityRPM = 0;
-*/
+        // Send slewed velocity to motor
+        launchMotor.setVelocity(interimVelocityRPM * RPM_TO_TPS);
+        currentVelocityRPM = launchMotor.getVelocity() * TPS_TO_RPM;
     }
-
 
     @Override
     public void getTelemetry(Telemetry telemetry) {

@@ -272,18 +272,35 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
     }
 
     // Step numbers, written to the run log's leg column (see AutoOpMode). Fixed per step,
-    // not counted, so the same step has the same number in every config:
-    //   1 = start delay, 3 = block (drive + wait), 4 = garden, 5 = close flower,
-    //   6 = far flower, 7 = park, 8 = zeroing after park, 9 = zeroing forced by the timer,
-    //   10 = backing off the far flower, 11 = safe tunnel
+    // not counted, so the same step has the same number in every config. Every drive and
+    // every wait sets its own number, so each stretch of the log belongs to one step:
+    //    1 = start delay                   2 = first shot (launch at the start)
+    //    3 = drive to block               12 = wait at block for the hive
+    //    4 = garden                        5 = drive to close flower
+    //   13 = settle at close flower       14 = close flower intake (incl. extra push)
+    //   15 = back off close flower         6 = drive to far flower
+    //   16 = settle at far flower         17 = far flower intake (incl. extra push)
+    //   10 = back off far flower          18 = drive to travel pose 1 (non-flower side)
+    //   19 = drive to travel pose 2 (flower side)
+    //   20 = drive to flower shoot spot   21 = flower shot (launch); both visits use 20/21
+    //   23 = drive to first shoot spot (unused for now)
+    //    7 = drive to park                22 = settle + pause at park
+    //   99 = zeroing after park            9 = zeroing forced by the timer
+    // Retired: 8 (old zeroing number, now 99), 11 (old safe tunnel waypoint).
+    private Command mark(int stepNumber) {
+        return instant(() -> step = stepNumber);
+    }
+
     @Override
     public void buildSchedule() {
         Command driveToNonFlowerShoot = lazy(() -> {
+            step = 23;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = nonFlowerShootPose;
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToFlowerShoot = lazy(() -> {
+            step = 20;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = flowerShootPose;
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
@@ -306,6 +323,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command backOffCloseFlower = lazy(() -> {
+            step = 15;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = closeFlowerBackoffPose;
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
@@ -322,6 +340,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command backOffFarFlower = lazy(() -> {
+            step = 10;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = farFlowerBackoffPose;
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
@@ -333,11 +352,13 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, turnEndFraction));
         });
         Command driveToNonFlowerTravel = lazy(() -> {
+            step = 18;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = nonFlowerSafeTravelPose;
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, 0.05));
         });
         Command driveToFlowerTravel = lazy(() -> {
+            step = 19;
             Pose currentPose = motion.follower.pose();
             Pose nextPose = flowerSafeTravelPose;
             return follow(motion.follower, line(currentPose, nextPose).linear(currentPose, nextPose, 0.05));
@@ -372,18 +393,20 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 waitMs(startDelayMs));
 
         Command maybeNonFlowerShoot = conditional(this::disableNonFlowerShoot,
-                nothing, launchAll);
+                nothing, sequential(mark(2), launchAll));
         Command maybeFlowerShoot = conditional(this::disableFlowerShoot,
                 nothing,
-                sequential(driveToFlowerShoot, launchAll));
+                sequential(driveToFlowerShoot, mark(21), launchAll));
 
-        Command closeFlowerIntake = sequential(startIntake, race(waitMs(3000), driveToCloseExtraFlower), stopIntake);
-        Command farFlowerIntake = sequential(startIntake, race(waitMs(3000), driveToFarExtraFlower), stopIntake);
+        // The extra-push drives set no step of their own, so they log under the intake step
+        Command closeFlowerIntake = sequential(mark(14), startIntake, race(waitMs(3000), driveToCloseExtraFlower), stopIntake);
+        Command farFlowerIntake = sequential(mark(17), startIntake, race(waitMs(3000), driveToFarExtraFlower), stopIntake);
         Command maybeBlock = conditional(this::disableBlock,
                 nothing,
                 sequential(
                         parallel(driveToBlock, startIntake),
                         // Wait for hive to tip, either timer or fiducial reading, and wait BLOCK_WAIT_MS
+                        mark(12),
                         waitMs(BLOCK_WAIT_MS),
                         stopIntake));
         Command travelNonFlowerToFlower = sequential(driveToNonFlowerTravel, driveToFlowerTravel);
@@ -393,10 +416,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                 driveToGarden,
                 nothing);
         Command maybeCloseFlower = conditional(this::visitCloseFlower,
-                sequential(driveToCloseFlower, settleAt(closeFlowerPose), closeFlowerIntake),
+                sequential(driveToCloseFlower, mark(13), settleAt(closeFlowerPose), closeFlowerIntake),
                 nothing);
         Command maybeFarFlower = conditional(this::visitFarFlower,
-                sequential(driveToFarFlower, settleAt(farFlowerPose), farFlowerIntake,
+                sequential(driveToFarFlower, mark(16), settleAt(farFlowerPose), farFlowerIntake,
                         backOffFarFlower),
                 nothing);
 
@@ -420,6 +443,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
                                 maybeFlowerShoot,
                                 driveToPark,
                                 // Settle before zeroing: zeroing stops the hold, so any error left here stays
+                                mark(22),
                                 settleAt(parkPose),
                                 waitMs(pointPauseMs),
                                 instant(() -> step = 99),

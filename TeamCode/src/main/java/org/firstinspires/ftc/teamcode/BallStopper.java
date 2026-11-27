@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 import com.qualcomm.robotcore.hardware.Servo;
 
 public class BallStopper extends RobotPart {
@@ -11,7 +12,6 @@ public class BallStopper extends RobotPart {
     private static final double NECTAR_OPEN = 0.25;
     private static final double ALL_CLOSED = 0.5;
     private static final double POLLEN_OPEN = 0.8;
-
     private static final double POLLEN_NECTAR_OPEN = 1.00;
 
     public BallStopper(StandardSetupOpMode ssom) {
@@ -34,18 +34,24 @@ public class BallStopper extends RobotPart {
     public void loop() {
         if (!ssom.ignoreGamepad)
         {
+            if (this.ssom.gamepad1.right_bumper || this.ssom.gamepad1.left_bumper)
+                ssom.launcher.setRPMFromDistance(2.0, 0);
+            else
+                ssom.launcher.idle();
+
             // The drive can press both launch buttons or just one
             // The code will select the closest correct position for the cam and set it
-            if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper)
+            boolean ready = ssom.launcher.launchReady();
+            if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper && ready)
             {
                 if  (ballServo.getPosition() < ALL_CLOSED)
                     ballServo.setPosition((NECTAR_POLLEN_OPEN));
                 else
                     ballServo.setPosition((POLLEN_NECTAR_OPEN));
             }
-            else if (this.ssom.gamepad1.right_bumper)
+            else if (this.ssom.gamepad1.right_bumper && ready)
                 ballServo.setPosition(NECTAR_OPEN);
-            else if (this.ssom.gamepad1.left_bumper)
+            else if (this.ssom.gamepad1.left_bumper && ready)
                 ballServo.setPosition(POLLEN_OPEN);
             else
                 ballServo.setPosition((ALL_CLOSED));
@@ -59,12 +65,52 @@ public class BallStopper extends RobotPart {
         }
     }
 
+    public boolean pollenOpen(){
+        double pos = ballServo.getPosition();
+        return pos == POLLEN_OPEN || pos == NECTAR_POLLEN_OPEN || pos == POLLEN_NECTAR_OPEN;
+    }
+    public boolean nectarOpen(){
+        double pos = ballServo.getPosition();
+        return pos == NECTAR_OPEN || pos == NECTAR_POLLEN_OPEN || pos == POLLEN_NECTAR_OPEN;
+    }
+    public boolean bothOpen(){
+        double pos = ballServo.getPosition();
+        return pos == NECTAR_POLLEN_OPEN || pos == POLLEN_NECTAR_OPEN;
+    }
+    public boolean bothClosed(){
+        double pos = ballServo.getPosition();
+        return pos == ALL_CLOSED;
+    }
+
     public void allowPollen(){
-        ballServo.setPosition(POLLEN_OPEN);
+        double pos = ballServo.getPosition();
+        if (pos == NECTAR_OPEN)
+            ballServo.setPosition(NECTAR_POLLEN_OPEN);
+        else if(pos == ALL_CLOSED)
+            ballServo.setPosition(POLLEN_OPEN);
+    }
+    public void stopPollen() {
+        double pos = ballServo.getPosition();
+        if (pos == POLLEN_OPEN)
+            ballServo.setPosition(ALL_CLOSED);
+        else if(pos == POLLEN_NECTAR_OPEN || pos == NECTAR_POLLEN_OPEN)
+            ballServo.setPosition(NECTAR_OPEN);
     }
 
     public void allowNectar(){
-        ballServo.setPosition(NECTAR_OPEN);
+        double pos = ballServo.getPosition();
+        if (pos == POLLEN_OPEN)
+            ballServo.setPosition(POLLEN_NECTAR_OPEN);
+        else if(pos == ALL_CLOSED)
+            ballServo.setPosition(NECTAR_OPEN);
+    }
+
+    public void stopNectar(){
+        double pos = ballServo.getPosition();
+        if (pos == NECTAR_OPEN)
+            ballServo.setPosition(ALL_CLOSED);
+        else if(pos == POLLEN_NECTAR_OPEN || pos == NECTAR_POLLEN_OPEN)
+            ballServo.setPosition(NECTAR_OPEN);
     }
 
     public void allowAll(){
