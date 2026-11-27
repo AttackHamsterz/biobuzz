@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.internal.camera.delegating.DelegatingCaptureSequence;
 
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -40,22 +39,19 @@ public class BallStopper extends RobotPart {
             else
                 ssom.launcher.idle();
 
-            // Do nothing if the launcher is not ready
-            if (!ssom.launcher.launchReady())
-                return;
-
             // The drive can press both launch buttons or just one
             // The code will select the closest correct position for the cam and set it
-            if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper)
+            boolean ready = ssom.launcher.launchReady();
+            if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper && ready)
             {
                 if  (ballServo.getPosition() < ALL_CLOSED)
                     ballServo.setPosition((NECTAR_POLLEN_OPEN));
                 else
                     ballServo.setPosition((POLLEN_NECTAR_OPEN));
             }
-            else if (this.ssom.gamepad1.right_bumper)
+            else if (this.ssom.gamepad1.right_bumper && ready)
                 ballServo.setPosition(NECTAR_OPEN);
-            else if (this.ssom.gamepad1.left_bumper)
+            else if (this.ssom.gamepad1.left_bumper && ready)
                 ballServo.setPosition(POLLEN_OPEN);
             else
                 ballServo.setPosition((ALL_CLOSED));

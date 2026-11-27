@@ -19,6 +19,10 @@ public class Launcher extends RobotPart{
     private static final double CLOSE_ENOUGH_RPM = 200;
     private static final double IDLE_RPM = 0;
     private static final double MIN_LAUNCH_VALUE_RPM = 3000;
+    private static final double DEFAULT_FLOWER_RPM = 2000;
+    private static final double DELTA_FLOWER_RPM = 100;
+    private static final double DEFAULT_FLOWER_ANGLE = 5;
+    private static final double DELTA_FLOWER_ANGLE = 1;
     private static final double TPS_TO_RPM = 60.0 / TPR;
     private static final double RPM_TO_TPS = TPR / 60.0;
     private double MIN_THRESHOLD_DISTANCE = 0.5;
@@ -60,6 +64,7 @@ public class Launcher extends RobotPart{
     private final CRServo launchServo;
     private final PiecewiseController launchServoController; // PID uses degrees (tune PIDF for degree error)
     private double launchAngleDegrees;
+    private double flowerAngle = DEFAULT_FLOWER_ANGLE;
 
     // Enumerations and definitions
     public enum TargetMode {
@@ -83,6 +88,7 @@ public class Launcher extends RobotPart{
 
     // RPM calculations
     private double currentRPM;
+    private double flowerRPM;
 
     public Launcher(StandardSetupOpMode ssom){
         this.ssom = ssom;
@@ -115,6 +121,7 @@ public class Launcher extends RobotPart{
         targetVelocityRPM = IDLE_RPM;
         interimVelocityRPM = 0;
         currentVelocityRPM = 0;
+        flowerRPM = DEFAULT_FLOWER_RPM;
 
         velocityRPM = new ArrayList<>(List.of(
                 new RPMEntry(-50,-1500),
@@ -128,8 +135,8 @@ public class Launcher extends RobotPart{
 
         // Table of distances in meters to RPM
         distanceRPM = new ArrayList<>(List.of(
-                new RPMEntry(1.0, 3000.0),
-                new RPMEntry(2.00, 4000.0)
+                new RPMEntry(1.0, 3000),
+                new RPMEntry(2.00, 3500)
         ));
     }
 
@@ -165,11 +172,14 @@ public class Launcher extends RobotPart{
     }
 
     public void idle(){
-        targetVelocityRPM = IDLE_RPM;
+        targetVelocityRPM = isFlowerMode() ? flowerRPM : IDLE_RPM;
     }
 
     public void setTargetMode(TargetMode targetMode){
         target = targetMode;
+    }
+    public boolean isFlowerMode(){
+        return target == TargetMode.FLOWER;
     }
 
     public void setRPMFromDistance(double distance, double extraRPM){
@@ -177,6 +187,9 @@ public class Launcher extends RobotPart{
     }
 
     public void setRPMFromDistance(double distance, double extraRPM, double V) {
+        // Flower mode, ignore inputs
+        if (target == TargetMode.FLOWER) return;
+
         double rpm = 0;
         double vxrpm = 0;
 
@@ -233,13 +246,51 @@ public class Launcher extends RobotPart{
     @Override
     public void loop() {
         // First step, make sure the launch servo is turned to the correct angle
-        if(ssom.eye.activeTarget()){
+        if(target == TargetMode.HIVE && ssom.eye.activeTarget()){
             setLaunchAngleDegrees(-ssom.eye.getTargetAngleDeg());
         }
 
-        // User 2 can override to get the camera aiming back on track
+        // Flower processing
         if(!ssom.ignoreGamepad) {
-            if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05)
+            // Switch modes
+            if(ssom.gamepad2.touchpadWasPressed()){
+                if(target == TargetMode.HIVE) {
+                    target = TargetMode.FLOWER;
+                    targetVelocityRPM = flowerRPM;
+                    setLaunchAngleDegrees(-flowerAngle);
+                }
+                else{
+                    target = TargetMode.HIVE;
+                    targetVelocityRPM = IDLE_RPM;
+                }
+            }
+
+            if(target == TargetMode.FLOWER) {
+                if(ssom.gamepad2.dpadUpWasPressed()){
+                    flowerRPM += DELTA_FLOWER_RPM;
+                    targetVelocityRPM = flowerRPM;
+                }
+                if(ssom.gamepad2.dpadDownWasPressed()){
+                    flowerRPM -= DELTA_FLOWER_RPM;
+                    targetVelocityRPM = flowerRPM;
+                }
+                if(ssom.gamepad2.dpadLeftWasPressed()){
+                    flowerAngle += DELTA_FLOWER_ANGLE;
+                    setLaunchAngleDegrees(flowerAngle);
+                }
+                if(ssom.gamepad2.dpadRightWasPressed()){
+                    flowerAngle -= DELTA_FLOWER_ANGLE;
+                    setLaunchAngleDegrees(flowerAngle);
+                }
+                if(ssom.gamepad2.leftBumperWasPressed()) {
+                    setLaunchAngleDegrees(flowerAngle);
+                }
+                if(ssom.gamepad2.rightBumperWasPressed()) {
+                    setLaunchAngleDegrees(-flowerAngle);
+                }
+            }
+            // User 2 can override launch angle to get the camera aiming back on track
+            else if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05)
                 setLaunchAngleDegrees(-Math.toDegrees(Math.atan2(-ssom.gamepad2.left_stick_y, -ssom.gamepad2.left_stick_x)) + 90.0);
         }
         updateLaunchAngle();
@@ -256,7 +307,6 @@ public class Launcher extends RobotPart{
         launchMotor.setVelocity(interimVelocityRPM * RPM_TO_TPS);
         currentVelocityRPM = launchMotor.getVelocity() * TPS_TO_RPM;
     }
-
 
     @Override
     public void getTelemetry(Telemetry telemetry) {
