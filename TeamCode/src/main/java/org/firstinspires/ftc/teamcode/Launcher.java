@@ -18,7 +18,7 @@ public class Launcher extends RobotPart{
     private static final double MAX_RPM = 6000.0;
     private static final double CLOSE_ENOUGH_RPM = 200;
     private static final double IDLE_RPM = 0;
-    private static final double MIN_LAUNCH_VALUE_RPM = 3000;
+    private static final double MIN_LAUNCH_VALUE_RPM = 500;
     private static final double DEFAULT_FLOWER_RPM = 2000;
     private static final double DELTA_FLOWER_RPM = 100;
     private static final double DEFAULT_FLOWER_ANGLE = 5;
@@ -66,6 +66,13 @@ public class Launcher extends RobotPart{
     private double launchAngleDegrees;
     private double flowerAngle = DEFAULT_FLOWER_ANGLE;
 
+    // Logging only: what the turret controller saw and did last loop (see LaunchLog)
+    private LaunchLog log;
+    private double turretActualDeg;
+    private double turretErrorDeg;
+    private double turretPower;
+    private boolean turretInBand;
+
     // Enumerations and definitions
     public enum TargetMode {
         HIVE(0),    // Shoot at the hive
@@ -101,8 +108,11 @@ public class Launcher extends RobotPart{
         isLaunchable = true;
 
         // Dummy motor has our servo encoder
+        // RUN_WITHOUT_ENCODER: this port's motor is the pollen intake. In RUN_USING_ENCODER the hub
+        // would speed-control the intake using the TURRET's encoder, slowing or reversing the track
+        // whenever the turret turns. The encoder still counts in this mode, so aiming is unaffected.
         dummyMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        dummyMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        dummyMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         // Setup PID and motor
         launchMotor.setVelocityPIDFCoefficients(kP, kI, kD, kF);
@@ -161,6 +171,9 @@ public class Launcher extends RobotPart{
             delta = 360.0 - delta;
             dir = -dir;
         }
+        turretActualDeg = actualDeg;
+        turretErrorDeg = delta * dir;
+        turretInBand = delta < CLOSE_ENOUGH_DEGREES;
         if (delta < CLOSE_ENOUGH_DEGREES) return;
 
         // Setpoint close to current so PID follows shortest path
@@ -169,6 +182,24 @@ public class Launcher extends RobotPart{
                     -1.0,
                     1.0);
         launchServo.setPower(turnPower);
+        turretPower = turnPower;
+    }
+
+    // ---- Logging getters (LaunchLog) ----
+    public double getTurretSetpointDeg() { return launchAngleDegrees; }
+    public double getTurretActualDeg() { return turretActualDeg; }
+    public double getTurretErrorDeg() { return turretErrorDeg; }
+    public double getTurretPower() { return turretPower; }
+    public boolean isTurretInBand() { return turretInBand; }
+    // Bulk-cached read, same bulk data the turret angle comes from
+    public double getTurretTicksPerSec() { return dummyMotor.getVelocity(); }
+    public double getTargetRPM() { return targetVelocityRPM; }
+    public double getInterimRPM() { return interimVelocityRPM; }
+    public double getCurrentRPM() { return currentVelocityRPM; }
+
+    /** Flush and close the launch log. Called from StandardSetupOpMode.stop(). */
+    public void closeLog() {
+        if (log != null) log.close();
     }
 
     public void idle(){
@@ -240,7 +271,7 @@ public class Launcher extends RobotPart{
 
     @Override
     public void start(){
-
+        log = new LaunchLog(ssom, "launch_" + ssom.getClass().getSimpleName());
     }
 
     @Override
@@ -283,10 +314,10 @@ public class Launcher extends RobotPart{
                     setLaunchAngleDegrees(flowerAngle);
                 }
                 if(ssom.gamepad2.leftBumperWasPressed()) {
-                    setLaunchAngleDegrees(flowerAngle);
+                    setLaunchAngleDegrees(-flowerAngle);
                 }
                 if(ssom.gamepad2.rightBumperWasPressed()) {
-                    setLaunchAngleDegrees(-flowerAngle);
+                    setLaunchAngleDegrees(flowerAngle);
                 }
             }
             // User 2 can override launch angle to get the camera aiming back on track
@@ -306,6 +337,14 @@ public class Launcher extends RobotPart{
         // Send slewed velocity to motor
         launchMotor.setVelocity(interimVelocityRPM * RPM_TO_TPS);
         currentVelocityRPM = launchMotor.getVelocity() * TPS_TO_RPM;
+
+        // Log this loop. Guarded: an exception escaping a scheduled loop silently stops it for good.
+        if (log != null) {
+            try {
+                log.row();
+            } catch (RuntimeException ignored) {
+            }
+        }
     }
 
     @Override
@@ -318,6 +357,7 @@ public class Launcher extends RobotPart{
             telemetry.addData("launchCurrentVelocityRPM", currentVelocityRPM);
             telemetry.addData("Launchablility", isLaunchable ? "ITS A GO GO TIME" : "Please do not launch :(");
             telemetry.addData("LaunchMode",target);
+            if (log != null) telemetry.addData("LaunchLog", log.path);
         }
     }
 }
