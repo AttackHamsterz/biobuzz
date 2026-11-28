@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class Intake extends RobotPart{
-    private static final double POLLEN_LAUNCH_POWER = 0.3;
-    private static final double NECTAR_LAUNCH_POWER = 0.6;
+    private static final double POLLEN_LAUNCH_POWER = 1.0;
+    private static final double NECTAR_LAUNCH_POWER = 1.0;
     private static final double ENOUGH_JOYSTICK = 0.1;
     private final DcMotor pollenMotor;
     private final DcMotor nectarMotor;
