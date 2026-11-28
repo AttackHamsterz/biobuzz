@@ -50,6 +50,7 @@ public class Lifter extends RobotPart{
     public void getTelemetry(Telemetry telemetry) {
         if((DEBUG & 32) != 0) {
             telemetry.addData("targetLiftPosition", targetPosition);
+            telemetry.addData("currentLiftPosition", liftMotor.getCurrentPosition());
         }
     }
 }
