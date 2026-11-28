@@ -7,7 +7,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Lifter extends RobotPart{
     private static final int CLOSE_ENOUGH = 20;
     private static final int DOWN_TICKS = 0;
-    private static final int UP_TICKS = 500;
+    private static final int UP_TICKS = 100;
     private static final double LIFT_POWER = 0.8;
     private static final double HOLD_POWER = 0.0;
 

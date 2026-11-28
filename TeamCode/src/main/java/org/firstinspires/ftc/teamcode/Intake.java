@@ -8,12 +8,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class Intake extends RobotPart{
     private static final double POLLEN_LAUNCH_POWER = 0.3;
-    private static final double NECTAR_LAUNCH_POWER = 0.5;
+    private static final double NECTAR_LAUNCH_POWER = 0.6;
     private static final double ENOUGH_JOYSTICK = 0.1;
-    private static final double MOTOR = 1;
     private final DcMotor pollenMotor;
     private final DcMotor nectarMotor;
-    private static final double INTAKE_MOTOR_SPEED = 1.0;
 
     public Intake(StandardSetupOpMode ssom){
         this.ssom = ssom;
@@ -46,34 +44,29 @@ public class Intake extends RobotPart{
         pollenMotor.setPower(Range.clip(power,-1.0,1.0));
     }
 
-    public void stop(){
-        pollenMotor.setPower(0);
-        nectarMotor.setPower(0);
-    }
-
     @Override
     public void loop() {
         if(!ssom.ignoreGamepad){
             // The drive intakes with the left and right trigger while
             // driving.  To fire they hold down the left and right bumpers.
-            if (ssom.gamepad1.left_trigger > 0.01)
-                pollenMotor.setPower(ssom.gamepad1.left_trigger);
-            else if(ssom.gamepad1.left_bumper)
+            boolean ready = ssom.launcher.launchReady();
+            if (ssom.gamepad2.left_trigger > ENOUGH_JOYSTICK)
+                pollenMotor.setPower(-ssom.gamepad2.left_trigger);
+            else if(ssom.gamepad1.left_bumper && ready)
                 pollenMotor.setPower(POLLEN_LAUNCH_POWER);
+            else if (ssom.gamepad1.left_trigger > ENOUGH_JOYSTICK)
+                pollenMotor.setPower(ssom.gamepad1.left_trigger);
             else
                 pollenMotor.setPower(0);
-            if(ssom.gamepad1.right_trigger > 0.01)
-                nectarMotor.setPower(ssom.gamepad1.right_trigger);
-            else if(ssom.gamepad1.right_bumper)
+
+            if (ssom.gamepad2.right_trigger > ENOUGH_JOYSTICK)
+                nectarMotor.setPower(-ssom.gamepad2.right_trigger);
+            else if(ssom.gamepad1.right_bumper && ready)
                 nectarMotor.setPower(NECTAR_LAUNCH_POWER);
+            else if(ssom.gamepad1.right_trigger > ENOUGH_JOYSTICK)
+                nectarMotor.setPower(ssom.gamepad1.right_trigger);
             else
                 nectarMotor.setPower(0);
-
-            // Second driver is in charge of clearing jams
-            if (ssom.gamepad2.left_trigger > 0.01)
-                pollenMotor.setPower(-ssom.gamepad2.left_trigger);
-            if (ssom.gamepad2.right_trigger > 0.01)
-                nectarMotor.setPower(-ssom.gamepad2.right_trigger);
         }
     }
 

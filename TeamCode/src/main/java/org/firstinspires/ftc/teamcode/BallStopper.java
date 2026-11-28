@@ -4,6 +4,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import com.qualcomm.robotcore.hardware.Servo;
 
+import java.util.Timer;
+
 public class BallStopper extends RobotPart {
 
     public Servo ballServo = null;
@@ -13,6 +15,7 @@ public class BallStopper extends RobotPart {
     private static final double ALL_CLOSED = 0.5;
     private static final double POLLEN_OPEN = 0.8;
     private static final double POLLEN_NECTAR_OPEN = 1.00;
+    private static final int CLEAR_MS = 500;
 
     public BallStopper(StandardSetupOpMode ssom) {
         this.ssom = ssom;
@@ -30,29 +33,49 @@ public class BallStopper extends RobotPart {
 
     }
 
+    private long lastTime = 0;
+
     @Override
     public void loop() {
         if (!ssom.ignoreGamepad)
         {
-            if (this.ssom.gamepad1.right_bumper || this.ssom.gamepad1.left_bumper)
+            if (ssom.gamepad1.right_bumper || ssom.gamepad1.left_bumper)
                 ssom.launcher.setRPMFromDistance(2.0, 0);
             else
                 ssom.launcher.idle();
 
+            // Has it been long enough to check again
+            long now = System.currentTimeMillis();
+            if(now - lastTime < CLEAR_MS)
+                return;
+
             // The drive can press both launch buttons or just one
             // The code will select the closest correct position for the cam and set it
             boolean ready = ssom.launcher.launchReady();
-            if (this.ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper && ready)
+            if (ssom.gamepad2.right_bumper && ready) {
+                ballServo.setPosition(NECTAR_OPEN);
+                lastTime = now;
+            }
+            else if (ssom.gamepad2.left_bumper && ready) {
+                ballServo.setPosition(POLLEN_OPEN);
+                lastTime = now;
+            }
+            else if (ssom.gamepad1.right_bumper && this.ssom.gamepad1.left_bumper && ready)
             {
                 if  (ballServo.getPosition() < ALL_CLOSED)
                     ballServo.setPosition((NECTAR_POLLEN_OPEN));
                 else
                     ballServo.setPosition((POLLEN_NECTAR_OPEN));
+                lastTime = now;
             }
-            else if (this.ssom.gamepad1.right_bumper && ready)
+            else if (this.ssom.gamepad1.right_bumper && ready) {
                 ballServo.setPosition(NECTAR_OPEN);
-            else if (this.ssom.gamepad1.left_bumper && ready)
+                lastTime = now;
+            }
+            else if (this.ssom.gamepad1.left_bumper && ready) {
                 ballServo.setPosition(POLLEN_OPEN);
+                lastTime = now;
+            }
             else
                 ballServo.setPosition((ALL_CLOSED));
         }

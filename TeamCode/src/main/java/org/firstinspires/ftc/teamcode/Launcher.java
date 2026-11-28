@@ -18,7 +18,7 @@ public class Launcher extends RobotPart{
     private static final double MAX_RPM = 6000.0;
     private static final double CLOSE_ENOUGH_RPM = 200;
     private static final double IDLE_RPM = 0;
-    private static final double MIN_LAUNCH_VALUE_RPM = 3000;
+    private static final double MIN_LAUNCH_VALUE_RPM = 500;
     private static final double DEFAULT_FLOWER_RPM = 2000;
     private static final double DELTA_FLOWER_RPM = 100;
     private static final double DEFAULT_FLOWER_ANGLE = 5;
@@ -283,10 +283,10 @@ public class Launcher extends RobotPart{
                     setLaunchAngleDegrees(flowerAngle);
                 }
                 if(ssom.gamepad2.leftBumperWasPressed()) {
-                    setLaunchAngleDegrees(flowerAngle);
+                    setLaunchAngleDegrees(-flowerAngle);
                 }
                 if(ssom.gamepad2.rightBumperWasPressed()) {
-                    setLaunchAngleDegrees(-flowerAngle);
+                    setLaunchAngleDegrees(flowerAngle);
                 }
             }
             // User 2 can override launch angle to get the camera aiming back on track
