@@ -53,6 +53,11 @@ import java.util.Locale;
  *   pollenAmps, nectarAmps intake motor current (blank unless LOG_CURRENT)
  *   mode             0 = hive, 1 = flower
  *   g1LB..g2Stick    driver inputs (bumpers 0/1, triggers 0-1, g2Stick = turret override active)
+ *   camFresh         1 if Eye acted on a fresh measurement (new frame, changed aim point)
+ *   camCapDeg        camera angle Eye looked up for that frame's capture time (last fresh one)
+ *   aimId            first center tag Eye aimed from (-1 = none)
+ *   aimTags          2 if its partner center tag was averaged in (aim = midpoint), else 1
+ *   centerSeen       how many of our center tags were in view
  */
 public class LaunchLog {
     public static final String DIR = "/sdcard/FIRST/launchlogs";
@@ -66,7 +71,8 @@ public class LaunchLog {
             + "camCmdDeg,camTgtDeg,camErrDeg,camMoved,hasTarget,frameNew,frameAgeMs,frames,aimX,aimY,"
             + "flyTgtRpm,flyCmdRpm,flyActRpm,ready,"
             + "gatePos,pollenPwr,nectarPwr,pollenAmps,nectarAmps,"
-            + "mode,g1LB,g1RB,g1LT,g1RT,g2LT,g2RT,g2Stick";
+            + "mode,g1LB,g1RB,g1LT,g1RT,g2LT,g2RT,g2Stick,"
+            + "camFresh,camCapDeg,aimId,aimTags,centerSeen";
 
     private final StandardSetupOpMode ssom;
     private BufferedWriter out;
@@ -168,6 +174,17 @@ public class LaunchLog {
         d(g2.left_trigger);
         d(g2.right_trigger);
         b(Math.abs(g2.left_stick_y) > 0.05 || Math.abs(g2.left_stick_x) >= 0.05);
+
+        // Camera fix diagnostics (appended so earlier columns keep their positions)
+        if (e != null) {
+            b(e.getLastFresh());
+            d(e.getLastCamAtCaptureDeg());
+            sb.append(',').append(e.getLastAimId());
+            sb.append(',').append(e.getLastAimTags());
+            sb.append(',').append(e.getLastCenterSeen());
+        } else {
+            sb.append(",,,,,");
+        }
 
         try {
             out.write(sb.toString());
