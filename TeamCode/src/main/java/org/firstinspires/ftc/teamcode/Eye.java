@@ -29,6 +29,14 @@ public class Eye extends RobotPart {
     private boolean flowerHiveUp = false; // Game starts with non flower hive up
     private double currentCamAngleDeg;
     private double targetCamAngleDeg;
+
+    // Logging only (read by LaunchLog from the launcher thread)
+    private volatile double lastDegreeToTurn;
+    private volatile boolean lastCamMoved;
+    private volatile boolean lastFrameNew;
+    private volatile double lastFrameAgeMs = Double.NaN;
+    private volatile int frameCount;
+    private double prevFrameTs = -1;
     public enum Mode {
         LOCATE_POLLEN(0),    // Locating the pollen
         FIND_HIVE(1),       // Finding the fiducials
@@ -112,6 +120,19 @@ public class Eye extends RobotPart {
             LLResult resultInUse = limelight.getLatestResult();
             currentCamAngleDeg = calcAngleFromPower(camServo.getPosition());
             double degreeToTurn = 0;
+
+            // Logging only: is this a new frame, and how old is it
+            if (resultInUse != null) {
+                double ts = resultInUse.getTimestamp();
+                lastFrameNew = ts != prevFrameTs;
+                if (lastFrameNew) frameCount++;
+                prevFrameTs = ts;
+                lastFrameAgeMs = resultInUse.getStaleness()
+                        + resultInUse.getCaptureLatency() + resultInUse.getTargetingLatency();
+            } else {
+                lastFrameNew = false;
+                lastFrameAgeMs = Double.NaN;
+            }
 
             boolean foundHiveState = false;
             boolean foundAimPoint = false;
@@ -218,6 +239,7 @@ public class Eye extends RobotPart {
             // Here we update the camera position
             // TODO - Handle wrap around
             targetCamAngleDeg = currentCamAngleDeg + (FRACTIONAL_CORRECTION * degreeToTurn);
+            lastDegreeToTurn = degreeToTurn;
             if(!ssom.ignoreGamepad) {
                 if (Math.abs(ssom.gamepad2.left_stick_y) > 0.05 || Math.abs(ssom.gamepad2.left_stick_x) >= 0.05) {
                     targetCamAngleDeg = Math.toDegrees(Math.atan2(-ssom.gamepad2.left_stick_y, -ssom.gamepad2.left_stick_x)) - 90.0;
@@ -226,6 +248,7 @@ public class Eye extends RobotPart {
                     degreeToTurn = CLOSE_ENOUGH_DEGREES + 1.0;
                 }
             }
+            lastCamMoved = Math.abs(degreeToTurn) > CLOSE_ENOUGH_DEGREES;
             if (Math.abs(degreeToTurn) > CLOSE_ENOUGH_DEGREES) {
                 camServo.setPosition(calcPowerFromAngle(targetCamAngleDeg));
             }
@@ -250,6 +273,15 @@ public class Eye extends RobotPart {
     public double getTargetAngleDeg(){
         return targetCamAngleDeg;
     }
+
+    // ---- Logging getters (LaunchLog) ----
+    public double getCamAngleDeg() { return currentCamAngleDeg; }
+    public double getLastDegreeToTurn() { return lastDegreeToTurn; }
+    public boolean getLastCamMoved() { return lastCamMoved; }
+    public boolean getLastFrameNew() { return lastFrameNew; }
+    public double getLastFrameAgeMs() { return lastFrameAgeMs; }
+    public int getFrameCount() { return frameCount; }
+    public Position getAimResult() { return aimResult; }
 
     /**
      * Given an angle in degrees we calculate the power that's applied to the camera servo.

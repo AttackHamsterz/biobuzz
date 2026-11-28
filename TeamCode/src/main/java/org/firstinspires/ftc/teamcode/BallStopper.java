@@ -9,6 +9,8 @@ import java.util.Timer;
 public class BallStopper extends RobotPart {
 
     public Servo ballServo = null;
+    // Latched launch permission, shared with Intake (read from its thread)
+    private volatile boolean launching = false;
 
     private static final double NECTAR_POLLEN_OPEN = 0.0;
     private static final double NECTAR_OPEN = 0.25;
@@ -44,6 +46,18 @@ public class BallStopper extends RobotPart {
             else
                 ssom.launcher.idle();
 
+            // Latch: once the flywheel is ready, stay "launching" until every launch bumper is
+            // released. The flywheel sits near the ready threshold and dips on each shot, so
+            // re-checking raw ready every loop closed the gate and stopped the feed mid-ball.
+            // Intake's launch feed uses this same flag (isLaunching). Updated before the hold
+            // below so Intake always sees the current value.
+            boolean launchHeld = ssom.gamepad1.right_bumper || ssom.gamepad1.left_bumper
+                    || ssom.gamepad2.right_bumper || ssom.gamepad2.left_bumper;
+            if (!launchHeld)
+                launching = false;
+            else if (ssom.launcher.launchReady())
+                launching = true;
+
             // Has it been long enough to check again
             long now = System.currentTimeMillis();
             if(now - lastTime < CLEAR_MS)
@@ -51,7 +65,7 @@ public class BallStopper extends RobotPart {
 
             // The drive can press both launch buttons or just one
             // The code will select the closest correct position for the cam and set it
-            boolean ready = ssom.launcher.launchReady();
+            boolean ready = launching;
             if (ssom.gamepad2.right_bumper && ready) {
                 ballServo.setPosition(NECTAR_OPEN);
                 lastTime = now;
@@ -86,6 +100,11 @@ public class BallStopper extends RobotPart {
         if((DEBUG & 2) != 0){
             telemetry.addData("Ball Servo Position", ballServo.getPosition());
         }
+    }
+
+    /** True once the flywheel was ready and a launch bumper is still held (see loop). */
+    public boolean isLaunching(){
+        return launching;
     }
 
     public boolean pollenOpen(){

@@ -1,10 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 public class Intake extends RobotPart{
     private static final double POLLEN_LAUNCH_POWER = 0.3;
@@ -44,12 +46,22 @@ public class Intake extends RobotPart{
         pollenMotor.setPower(Range.clip(power,-1.0,1.0));
     }
 
+    // ---- Logging getters (LaunchLog) ----
+    // getPower returns the SDK's cached last-set power, no hub read
+    public double getPollenPower() { return pollenMotor.getPower(); }
+    public double getNectarPower() { return nectarMotor.getPower(); }
+    // Current is a separate hub read each (~2-3 ms); LaunchLog only calls these if LOG_CURRENT
+    public double getPollenAmps() { return ((DcMotorEx) pollenMotor).getCurrent(CurrentUnit.AMPS); }
+    public double getNectarAmps() { return ((DcMotorEx) nectarMotor).getCurrent(CurrentUnit.AMPS); }
+
     @Override
     public void loop() {
         if(!ssom.ignoreGamepad){
             // The drive intakes with the left and right trigger while
             // driving.  To fire they hold down the left and right bumpers.
-            boolean ready = ssom.launcher.launchReady();
+            // Latched in BallStopper so the feed doesn't stop/start when the flywheel reading
+            // flickers across the ready threshold
+            boolean ready = ssom.ballStopper != null && ssom.ballStopper.isLaunching();
             if (ssom.gamepad2.left_trigger > ENOUGH_JOYSTICK)
                 pollenMotor.setPower(-ssom.gamepad2.left_trigger);
             else if(ssom.gamepad1.left_bumper && ready)
