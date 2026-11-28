@@ -58,6 +58,7 @@ public class Launcher extends RobotPart{
     private static final double TURN_Small_D = 0.0;   // Dampen oscillations
     private static final double TURN_Small_F = 0.0;   // Power to overcome friction (0.125)
     private static final double CLOSE_ENOUGH_DEGREES = 1.0; //  A degree seems close enough
+    private static final double TURN_PID_ZONE_DEGREES = 10.0; // PID below this error, P-only above
     private static final double ENCODER_TICS_PER_REV = 4000.0;
     private static final double ENCODER_GEAR_RATIO = 6.75; // Small pulley 20 teeth, large pulley 135 teeth
     private static final double ELC_SCALE_FACTOR = 1.0 / (ENCODER_TICS_PER_REV * ENCODER_GEAR_RATIO);
@@ -72,6 +73,7 @@ public class Launcher extends RobotPart{
     private double turretErrorDeg;
     private double turretPower;
     private boolean turretInBand;
+    private boolean turretPidActive = false; // PID piece was used last loop (see updateLaunchAngle)
 
     // Enumerations and definitions
     public enum TargetMode {
@@ -124,7 +126,7 @@ public class Launcher extends RobotPart{
         launchServoController = Controller.piecewise(Controller.pid(TURN_Small_P, TURN_Small_I, TURN_Small_D));
         if(TURN_Small_F != 0)
             launchServoController.plus(Controller.proportionalFeedforward(TURN_Small_F));
-        launchServoController.put(10.0, Controller.proportional(TURN_P));
+        launchServoController.put(TURN_PID_ZONE_DEGREES, Controller.proportional(TURN_P));
         launchAngleDegrees = 0;
 
         // Initial Motor speeds
@@ -174,7 +176,20 @@ public class Launcher extends RobotPart{
         turretActualDeg = actualDeg;
         turretErrorDeg = delta * dir;
         turretInBand = delta < CLOSE_ENOUGH_DEGREES;
-        if (delta < CLOSE_ENOUGH_DEGREES) return;
+        if (delta < CLOSE_ENOUGH_DEGREES) {
+            turretPidActive = false;
+            return;
+        }
+
+        // Pedro's PID integrates error * (time since its last call). It isn't called inside the
+        // deadband or past TURN_PID_ZONE_DEGREES (P-only there), so its first call after a gap
+        // added seconds' worth of error at once - and the time since INIT on the very first call.
+        // That wound-up integral kicked the turret into a swing it never recovered from. Reset
+        // before the first PID call after a gap so the integral only builds while it's working.
+        boolean pidZone = delta < TURN_PID_ZONE_DEGREES;
+        if (pidZone && !turretPidActive)
+            launchServoController.reset();
+        turretPidActive = pidZone;
 
         // Setpoint close to current so PID follows shortest path
         double turnPower = Utils.clamp(
