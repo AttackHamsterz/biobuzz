@@ -129,6 +129,11 @@ public class StandardSetupOpMode extends OpMode {
             // Preserve interrupt status
             Thread.currentThread().interrupt();
         }
+
+        // Flush the launch log after the part loops have stopped writing to it
+        if (launcher != null) {
+            launcher.closeLog();
+        }
     }
 
     /**

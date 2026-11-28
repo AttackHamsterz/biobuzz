@@ -28,6 +28,7 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
 
     public static final long OFF_CENTER_START = 1L;
     public static final long CENTER_START = 0L;
+    public static final long FAR_START = (1L << 61);
     public static final long DISABLE_NON_FLOWER_SHOOT = (1L << 1);
     public static final long NON_FLOWER_SHOOT = 0L;
     public static final long DISABLE_BLOCK = (1L << 2);
@@ -104,6 +105,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         return (OFF_CENTER_START & config) != 0;
     }
 
+    private boolean farStart() {
+        return (FAR_START & config) != 0;
+    }
+
     private boolean disableNonFlowerShoot() {
         return (DISABLE_NON_FLOWER_SHOOT & config) != 0;
     }
@@ -148,6 +153,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double offCenterStartY = 9.0;
         final double offCenterStartAngle = 90.0;
 
+        final double farStartX = 62.0;
+        final double farStartY = 135.0;
+        final double farStartAngle = 270.0;
+
         // Blocking positions to collect falls
         final double centerBlockX = 60.0;
         final double centerBlockY = 20.0;
@@ -156,6 +165,10 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
         final double offCenterBlockX = 38.0;
         final double offCenterBlockY = 14.0;
         final double offCenterBlockAngle = 160.0;
+
+        final double farBlockX = 64.0;
+        final double farBlockY = 121.0;
+        final double farBlockAngle = 170.0;
 
         // Close flower positions
         final double closeFlowerX = 15;
@@ -199,6 +212,9 @@ public class BioBuzzAutoOpMode extends AutoOpMode {
             startPose = poseFactory.of(offCenterStartX, offCenterStartY, offCenterStartAngle);
             blockPose = poseFactory.of(offCenterBlockX, offCenterBlockY, offCenterBlockAngle);
             nonFlowerShootPose = poseFactory.of(offCenterStartX, offCenterStartY+1.0, offCenterStartAngle);
+        } else if (farStart()) {
+            startPose = poseFactory.of(farStartX, farStartY, farStartAngle);
+            blockPose = poseFactory.of(farBlockX, farBlockY, farBlockAngle);
         } else {
             startPose = poseFactory.of(centerStartX, centerStartY, centerStartAngle);
             blockPose = poseFactory.of(centerBlockX, centerBlockY, centerBlockAngle);
